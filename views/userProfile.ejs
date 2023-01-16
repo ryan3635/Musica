@@ -10,7 +10,24 @@
     <div id="header">
         <h1>Musica</h1>
         <hr>
+        <form action="/userProfile" method="post">
+            <input type="text" name="userArtist" placeholder="Artist">
+            <input type="text" name="userAlbum" placeholder="Album">
+            <button type="submit">Add</button>
+        </form>
     </div>
-    
+
+    <div id="albumsFlex">
+        <% var position = 1; %>
+        <% albumList.forEach(function (item) { %>
+            <div id="albumEntry">
+                <h3 class="textOverflow"><%=position%>.&nbsp  <%=item.year%> <%=item.title%></h3>
+                <% position++ %>
+                <img src=<%=item.img %> class=imgAlbum alt="Album cover not available">
+                <br><br>
+            </div>
+        <% }); %>
+    </div>
+
     <%- include("footer") %>
 </div>

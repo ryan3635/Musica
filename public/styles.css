@@ -18,6 +18,14 @@ h2 {
     margin: 0;
 }
 
+h3 {
+    margin-left: 15.5%;
+    text-align: left;
+    font-size: 1.3rem;
+    font-style: italic;
+    border-bottom: 1px;
+}
+
 hr {
     border-style: solid;
     border-color: #FFE898;
@@ -47,6 +55,21 @@ hr {
     background-color:#66BFBF;
 }
 
+#albumsFlex {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    height: 665px;
+    width: 1000px;
+    z-index: 3;
+}
+
+#albumEntry {
+    width: 945px;
+    background-color:#66BFBF;
+    margin-left: 10.5%;
+}
+
 .buttonStyle {
     color: #FFE898;
     font-size: 2rem;
@@ -57,4 +80,16 @@ hr {
     border: none;
     padding: 0;
     cursor: pointer;
+}
+
+.imgAlbum {
+    object-fit: cover;
+    width: 600px;
+    height: 600px;
+}
+
+.textOverflow {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
 }
