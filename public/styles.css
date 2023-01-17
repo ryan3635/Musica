@@ -1,7 +1,6 @@
 html {
     background-color: #66BFBF;
     text-align: center;
-    padding-left: 5px;
 }
 
 h1 {
@@ -19,7 +18,7 @@ h2 {
 }
 
 h3 {
-    margin-left: 15.5%;
+    margin-left: 8.5%;
     text-align: left;
     font-size: 1.3rem;
     font-style: italic;
@@ -44,14 +43,14 @@ hr {
     position: fixed;
     text-align: right;
     float: left;
-    z-index: 1;
-    width: 97.5%;
+    z-index: 2;
+    width: 99%;
 }
 
 #header {
     display: inline-block;
     margin-top: 22px;
-    z-index: 2;
+    z-index: 1;
     background-color:#66BFBF;
 }
 
@@ -61,13 +60,33 @@ hr {
     flex-wrap: wrap;
     height: 665px;
     width: 1000px;
-    z-index: 3;
+    z-index: 4;
 }
 
 #albumEntry {
     width: 945px;
     background-color:#66BFBF;
     margin-left: 10.5%;
+}
+
+#albumTracks {
+    position: absolute;
+    display: inline-block;
+    margin: 0 auto 0 auto;
+    padding-left: 1.2%;
+    text-align: left;
+    line-height: 0;
+    font-family: 'Caveat', sans-serif;
+    font-size: 110%;
+    height: 600px;
+    width: 290px;
+    overflow-y: auto;
+    white-space: nowrap;
+    z-index: 3;
+}
+
+.hidden {
+    visibility: hidden;
 }
 
 .buttonStyle {
@@ -83,7 +102,7 @@ hr {
 }
 
 .imgAlbum {
-    object-fit: cover;
+    object-fit: fill;
     width: 600px;
     height: 600px;
 }
@@ -92,4 +111,19 @@ hr {
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
+}
+
+.trackList:hover {
+    scrollbar-width: thin;
+    -ms-overflow-style: auto;
+    display: inline-block;
+}
+
+.hideScrollbar1::-webkit-scrollbar {
+    display: none;
+  }
+
+.hideScrollbar2 {
+    -ms-overflow-style: none;
+    scrollbar-width: none; 
 }

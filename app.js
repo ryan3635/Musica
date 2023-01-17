@@ -34,6 +34,7 @@ const userListSchema = new mongoose.Schema({
     title: String,
     year: String,
     img: String,
+    albumTracks: [String]
 });
 const userList = new mongoose.model("List", userListSchema);
 
@@ -186,7 +187,7 @@ app.post("/userProfile", function (req, res) {
                 if (i >= 0) {
                     albumID1 = searchResult.results[i].master_id;
                     if (i < searchResult.results.length - 1) {
-                        var temp1 = searchResult.results.findIndex((album, temp) => temp > i && album.country === "US");
+                        var temp1 = searchResult.results.findIndex((album, pos) => pos > i && album.country === "US");
                         if (temp1 != -1 && searchResult.results[temp1].master_id < albumID1) {
                             albumID1 = searchResult.results[temp1].master_id;
                             i = temp1;
@@ -198,7 +199,7 @@ app.post("/userProfile", function (req, res) {
                 if (j >= 0) {
                     albumID2 = searchResult.results[j].master_id;
                     if (j < searchResult.results.length - 1) {
-                        var temp2 = searchResult.results.findIndex((album, temp) => temp > j && album.country === "UK");
+                        var temp2 = searchResult.results.findIndex((album, pos) => pos > j && album.country === "UK");
                         if (temp2 != -1 && searchResult.results[temp2].master_id < albumID2) {
                             albumID2 = searchResult.results[temp2].master_id;
                             j = temp2;
@@ -211,27 +212,52 @@ app.post("/userProfile", function (req, res) {
                     year = "(" + searchResult.results[i].year + ")";
                     imgURL = searchResult.results[i].cover_image;
 
-                    const album = new userList({
-                        albumID: albumID1,
-                        title: albumInfo,
-                        year: year,
-                        img: imgURL,
+                    const tracklist = new Array();
+                    db.getMaster(albumID1, function(err, data){
+                        console.log(data);
+                        var trackNumber = 0;
+                        for (i = 0; i < data.tracklist.length; i++) {
+                            if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
+                                trackNumber++;
+                                if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
+                                else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
+                            }
+                        }
+                        const album = new userList({
+                            albumID: albumID1,
+                            title: albumInfo,
+                            year: year,
+                            img: imgURL,
+                            albumTracks: tracklist
+                        });
+                        album.save();
                     });
-                    album.save();
                     
                 } else if (albumID1 > albumID2) {
                     albumInfo = searchResult.results[j].title;
                     year = "(" + searchResult.results[j].year + ")";
                     imgURL = searchResult.results[j].cover_image;
 
-                    const album = new userList({
-                        albumID: albumID2,
-                        title: albumInfo,
-                        year: year,
-                        img: imgURL,
-
+                    const tracklist = new Array();
+                    db.getMaster(albumID2, function(err, data){
+                        console.log(data);
+                        var trackNumber = 0;
+                        for (i = 0; i < data.tracklist.length; i++) {
+                            if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
+                                trackNumber++;
+                                if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
+                                else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
+                            }
+                        }
+                        const album = new userList({
+                            albumID: albumID2,
+                            title: albumInfo,
+                            year: year,
+                            img: imgURL,
+                            albumTracks: tracklist
+                        });
+                        album.save();
                     });
-                    album.save();
 
                 } else {
                     albumInfo = searchResult.results[0].title;
@@ -239,13 +265,26 @@ app.post("/userProfile", function (req, res) {
                     imgURL = searchResult.results[0].cover_image;
                     albumID1 = searchResult.results[0].master_id;
 
-                    const album = new userList({
-                        albumID: albumID1,
-                        title: albumInfo,
-                        year: year,
-                        img: imgURL,
+                    const tracklist = new Array();
+                    db.getMaster(albumID1, function(err, data){
+                        console.log(data);
+                        var trackNumber = 0;
+                        for (i = 0; i < data.tracklist.length; i++) {
+                            if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
+                                trackNumber++;
+                                if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
+                                else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
+                            }
+                        }
+                        const album = new userList({
+                            albumID: albumID1,
+                            title: albumInfo,
+                            year: year,
+                            img: imgURL,
+                            albumTracks: tracklist
+                        });
+                        album.save();
                     });
-                    album.save();
                 }
 
                 setTimeout(function () {

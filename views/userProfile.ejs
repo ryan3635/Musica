@@ -2,7 +2,7 @@
     <%- include("header") %>
 
     <div id="toolbar">
-        <a href="#header">Back to Start</a> |
+        <a href="#header">Start</a> |
         <a href="/userHome">Feed</a> |
         <a href="/logout">Log Out</a>
     </div>
@@ -21,9 +21,17 @@
         <% var position = 1; %>
         <% albumList.forEach(function (item) { %>
             <div id="albumEntry">
-                <h3 class="textOverflow"><%=position%>.&nbsp  <%=item.year%> <%=item.title%></h3>
+                <h3><%=position%>.&nbsp <%=item.year%> <%=item.title%></h3>
                 <% position++ %>
                 <img src=<%=item.img %> class=imgAlbum alt="Album cover not available">
+
+                <div id="albumTracks" class="hideScrollbar1 hideScrollbar2 trackList">
+                    <% item.albumTracks.forEach(function(track) { %>
+                        <p><%=track%></p>
+                        <br>
+                    <% }); %>
+                </div>
+
                 <br><br>
             </div>
         <% }); %>
