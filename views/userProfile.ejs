@@ -2,9 +2,9 @@
     <%- include("header") %>
 
     <div id="toolbar">
-        <a href="#header">Start</a> |
-        <a href="/userHome">Feed</a> |
-        <a href="/logout">Log Out</a>
+        <a href="#header" class="buttonStyle">Start</a> &nbsp
+        <a href="/userHome" class="buttonStyle">Feed</a> &nbsp
+        <a href="/logout" class="buttonStyle">Log Out</a>
     </div>
 
     <div id="header">
@@ -12,8 +12,9 @@
         <hr>
         <form action="/userProfile" method="post">
             <input type="text" name="userArtist" placeholder="Artist">
+            <br>
             <input type="text" name="userAlbum" placeholder="Album">
-            <button type="submit">Add</button>
+            <button type="submit" class="buttonStyle" style="font-size: 2.2rem">Add</button>
         </form>
     </div>
 

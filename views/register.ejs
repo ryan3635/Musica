@@ -1,21 +1,24 @@
 <%- include("header") %>
-<br>
+
+<div id="toolbar">
+    <a href="/" class="buttonStyle">Go Back</a>
+</div>
+
 <h1>Musica</h1>
 <hr>
+<% if (error) { %>
+    <p class="error">One or more fields were not entered, please try again!</p>
+<% } %>
 
 <form action="/register" method="POST">
-    <label for="email">Email:</label>
-    <input type="email" name="username">
+    <input type="email" name="username" id="username" placeholder="Email">
     <br>
-    <label for="password">Password:</label>
-    <input type="password" name="password" style="margin-right:1.45rem">
-    <br><br>
-    <button type="submit" class="buttonStyle">Register</button><br>
+    <input type="password" name="password" id="password" placeholder="Password">
+    <br>
+    <button type="submit" value="Register" class="buttonStyle" style="font-size: 2rem">Register</button>
 </form>
+
 <br>
-<a href="/auth/google" role="button">Sign Up With Google</a>
-<br>
-<a href="/">Go Back</a>
-<br>
+<a href="/auth/google" role="button" class="buttonStyle">Sign Up With Google</a>
 
 <%- include("footer") %>

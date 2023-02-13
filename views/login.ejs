@@ -1,21 +1,29 @@
 <%- include("header") %>
-<br>
+
+<div id="toolbar">
+    <a href="/" class="buttonStyle">Go Back</a>
+</div>
+
 <h1>Musica</h1>
 <hr>
 
+<% if (accCreated) { %>
+    <p class="error">Account Created!</p>
+<% } %>
+
+<% if (error) { %>
+    <p class="error">Incorrect username or password!</p>
+<% } %>
+
 <form action="/login" method="POST">
-    <label for="email">Email:</label>
-    <input type="email" name="username">
+    <input type="email" name="username" id="username" placeholder="Email">
     <br>
-    <label for="password">Password:</label>
-    <input type="password" name="password" style="margin-right:1.45rem">
-    <br><br>
-    <button type="submit" class="buttonStyle">Login</button><br>
+    <input type="password" name="password" id="password" placeholder="Password">
+    <br>
+    <button type="submit" value="Login" class="buttonStyle" style="font-size: 2rem">Login</button>
 </form>
+
 <br>
-<a href="/auth/google" role="button">Sign In With Google</a>
-<br>
-<a href="/">Go Back</a>
-<br>
+<a href="/auth/google" role="button" class="buttonStyle">Sign In With Google</a>
 
 <%- include("footer") %>
