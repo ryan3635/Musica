@@ -210,7 +210,8 @@ app.post("/userProfile", function (req, res) {
     if (req.isAuthenticated()) {
         const artistName = req.body.userArtist;
         const albumName = req.body.userAlbum;
-        db.search({artist: artistName, release_title: albumName, type: "master"}).then(function (searchResult) {
+        const albumYear = req.body.year;
+        db.search({artist: artistName, release_title: albumName, year: albumYear, type: "master"}).then(function (searchResult) {
             albumInfo = "";
             year = "";
             imgURL = "";
@@ -221,33 +222,53 @@ app.post("/userProfile", function (req, res) {
                 console.log(searchResult);
 
                 var i = searchResult.results.findIndex(album => album.country === "US");
-                if (i >= 0) {
-                    albumID1 = searchResult.results[i].master_id;
-                    if (i < searchResult.results.length - 1) {
-                        var temp1 = searchResult.results.findIndex((album, pos) => pos > i && album.country === "US");
-                        if (temp1 != -1 && searchResult.results[temp1].master_id < albumID1) {
-                            albumID1 = searchResult.results[temp1].master_id;
-                            i = temp1;
-                        }
+                var posUS = 0;
+
+                while (i >= 0 && i < searchResult.results.length - 1) {
+                    const albumID1temp = searchResult.results[i].master_id;
+                    if (albumID1temp < albumID1 && searchResult.results[i].country === "US") {
+                        albumID1 = albumID1temp;
+                        posUS = i;
                     }
+                    i++;
                 }
+                // if (i >= 0) {
+                //     albumID1 = searchResult.results[i].master_id;
+                //     if (i < searchResult.results.length - 1) {
+                //         var temp1 = searchResult.results.findIndex((album, pos) => pos > i && album.country === "US");
+                //         if (temp1 != -1 && searchResult.results[temp1].master_id < albumID1) {
+                //             albumID1 = searchResult.results[temp1].master_id;
+                //             i = temp1;
+                //         }
+                //     }
+                // }
 
                 var j = searchResult.results.findIndex(album => album.country === "UK");
-                if (j >= 0) {
-                    albumID2 = searchResult.results[j].master_id;
-                    if (j < searchResult.results.length - 1) {
-                        var temp2 = searchResult.results.findIndex((album, pos) => pos > j && album.country === "UK");
-                        if (temp2 != -1 && searchResult.results[temp2].master_id < albumID2) {
-                            albumID2 = searchResult.results[temp2].master_id;
-                            j = temp2;
-                        }
-                    }
+                var posUK = 0;
+
+                while (j >= 0 && j < searchResult.results.length - 1) {
+                    const albumID2temp = searchResult.results[j].master_id;
+                    if (albumID2temp < albumID2 && searchResult.results[j].country === "UK") {
+                        albumID2 = albumID2temp;
+                        posUK = j;
+                    } 
+                    j++;
                 }
+                // if (j >= 0) {
+                //     albumID2 = searchResult.results[j].master_id;
+                //     if (j < searchResult.results.length - 1) {
+                //         var temp2 = searchResult.results.findIndex((album, pos) => pos > j && album.country === "UK");
+                //         if (temp2 != -1 && searchResult.results[temp2].master_id < albumID2) {
+                //             albumID2 = searchResult.results[temp2].master_id;
+                //             j = temp2;
+                //         }
+                //     }
+                // }
 
                 if (albumID1 < albumID2) {
-                    albumInfo = searchResult.results[i].title;
-                    year = "(" + searchResult.results[i].year + ")";
-                    imgURL = searchResult.results[i].cover_image;
+                    albumInfo = searchResult.results[posUS].title;
+                    year = "(" + searchResult.results[posUS].year + ")";
+                    imgURL = searchResult.results[posUS].cover_image;
 
                     const tracklist = new Array();
                     db.getMaster(albumID1, function(err, data){
@@ -271,9 +292,9 @@ app.post("/userProfile", function (req, res) {
                     });
                     
                 } else if (albumID1 > albumID2) {
-                    albumInfo = searchResult.results[j].title;
-                    year = "(" + searchResult.results[j].year + ")";
-                    imgURL = searchResult.results[j].cover_image;
+                    albumInfo = searchResult.results[posUK].title;
+                    year = "(" + searchResult.results[posUK].year + ")";
+                    imgURL = searchResult.results[posUK].cover_image;
 
                     const tracklist = new Array();
                     db.getMaster(albumID2, function(err, data){

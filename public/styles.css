@@ -118,7 +118,7 @@ form input:not([type="submit"])::placeholder {
     font-family: 'Caveat', sans-serif;
     font-size: 110%;
     height: 600px;
-    width: 290px;
+    width: 350px;
     overflow-y: auto;
     white-space: nowrap;
     z-index: 3;
