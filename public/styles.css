@@ -12,14 +12,14 @@ body {
 }
 
 h1 {
-    color: #FFE898;
+    color: #F9F54B;
     font-size: 6rem;
     font-family: "Shadows Into Light", Arial, sans-serif;
     margin: 0;
 }
 
 h2 {
-    color: #FFE898;
+    color: #F9F54B;
     font-size: 2rem;
     font-family: "Shadows Into Light", Arial, sans-serif;
     margin: 0;
@@ -34,7 +34,7 @@ h3 {
 
 hr {
     border-style: solid;
-    border-color: #FFE898;
+    border-color: #F9F54B;
     border-width: 5px;
     border-radius: 50%;
     width: 66%;
@@ -128,14 +128,15 @@ form input:not([type="submit"])::placeholder {
     visibility: hidden;
 }
 
-.error {
+.message {
     display: block;
-    color: red;
+    color: black;
     font-weight: bold;
+    font-size: 1.2rem;
 }
 
 .buttonStyle {
-    color: #FFE898;
+    color: #F9F54B;
     font-size: 1.5rem;
     font-family: "Shadows Into Light", Arial, sans-serif;
     margin: 0;

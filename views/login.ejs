@@ -8,11 +8,11 @@
 <hr>
 
 <% if (accCreated) { %>
-    <p class="error">Account Created!</p>
+    <p class="message">Account Created!</p>
 <% } %>
 
 <% if (error) { %>
-    <p class="error">Incorrect username or password!</p>
+    <p class="message">Incorrect username or password!</p>
 <% } %>
 
 <form action="/login" method="POST">

@@ -90,26 +90,38 @@ passport.use(new GoogleStrategy({
 
 
 app.get("/", function (req, res) {
-    res.render("home");
+    if (req.isAuthenticated()) {
+        res.render("userHome");
+    } else {
+        res.render("home");
+    }
 });
 
 
 app.get("/login", function (req, res) {
-    const errCheck = {
-        page: "Login",
-        error: req.query.error,
-        accCreated: req.query.accCreated
+    if (req.isAuthenticated()) {
+        res.render("loggedIn");
+    } else {
+        const errCheck = {
+            page: "Login",
+            error: req.query.error,
+            accCreated: req.query.accCreated
+        };
+        res.render("login", errCheck);
     }
-    res.render("login", errCheck);
 });
 
 
 app.get("/register", function (req, res) {
-    const errCheck = {
-        page: "Register",
-        error: req.query.error
+    if (req.isAuthenticated()) {
+        res.render("loggedIn");
+    } else {
+        const errCheck = {
+            page: "Register",
+            error: req.query.error
+        };
+        res.render("register", errCheck);
     }
-    res.render("register", errCheck);
 });
 
 
@@ -125,7 +137,11 @@ app.get("/logout", function (req, res) {
 
 
 app.get("/loggedIn", function (req, res) {
-    res.render("loggedIn");
+    if (req.isAuthenticated()) {
+        res.render("loggedIn");
+    } else {
+        res.redirect("/login");
+    }
 });
 
 
@@ -171,7 +187,7 @@ app.post("/login", passport.authenticate("local", {successRedirect: "/userHome",
 
 app.post("/register", function (req, res) {
     if (req.body.username === "" || req.body.password === "") res.redirect("/register?error=true");
-    else if (req.isAuthenticated) res.redirect("/loggedIn");
+    else if (req.isAuthenticated()) res.redirect("/loggedIn");
     else {
         bcrypt.genSalt(10, function (err, salt) {
             if (err) return next(err);
