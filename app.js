@@ -173,6 +173,8 @@ app.get("/userProfile", function (req, res) {
             else {
                 res.render("userProfile", {
                     albumList: results,
+                    error: req.query.error,
+                    added: req.query.added
                 });
             }
         });
@@ -211,148 +213,133 @@ app.post("/userProfile", function (req, res) {
         const artistName = req.body.userArtist;
         const albumName = req.body.userAlbum;
         const albumYear = req.body.year;
-        db.search({artist: artistName, release_title: albumName, year: albumYear, type: "master"}).then(function (searchResult) {
-            albumInfo = "";
-            year = "";
-            imgURL = "";
-            var albumID1 = 99999999999999;
-            var albumID2 = 99999999999999;
 
-            if (searchResult.results.length > 0) {
-                console.log(searchResult);
+        if (artistName === "" && albumName === "" && albumYear === "") res.redirect("userProfile?error=true");
 
-                var i = searchResult.results.findIndex(album => album.country === "US");
-                var posUS = 0;
-
-                while (i >= 0 && i < searchResult.results.length - 1) {
-                    const albumID1temp = searchResult.results[i].master_id;
-                    if (albumID1temp < albumID1 && searchResult.results[i].country === "US") {
-                        albumID1 = albumID1temp;
-                        posUS = i;
+        else {
+            db.search({artist: artistName, release_title: albumName, year: albumYear, type: "master"}).then(function (searchResult) {
+                albumInfo = "";
+                year = "";
+                imgURL = "";
+                var albumID1 = 99999999999999;
+                var albumID2 = 99999999999999;
+    
+                if (searchResult.results.length > 0) {
+                    console.log(searchResult);
+    
+                    var i = searchResult.results.findIndex(album => album.country === "US");
+                    var posUS = 0;
+    
+                    while (i >= 0 && i < searchResult.results.length - 1) {
+                        const albumID1temp = searchResult.results[i].master_id;
+                        if (albumID1temp < albumID1 && searchResult.results[i].country === "US") {
+                            albumID1 = albumID1temp;
+                            posUS = i;
+                        }
+                        i++;
                     }
-                    i++;
-                }
-                // if (i >= 0) {
-                //     albumID1 = searchResult.results[i].master_id;
-                //     if (i < searchResult.results.length - 1) {
-                //         var temp1 = searchResult.results.findIndex((album, pos) => pos > i && album.country === "US");
-                //         if (temp1 != -1 && searchResult.results[temp1].master_id < albumID1) {
-                //             albumID1 = searchResult.results[temp1].master_id;
-                //             i = temp1;
-                //         }
-                //     }
-                // }
-
-                var j = searchResult.results.findIndex(album => album.country === "UK");
-                var posUK = 0;
-
-                while (j >= 0 && j < searchResult.results.length - 1) {
-                    const albumID2temp = searchResult.results[j].master_id;
-                    if (albumID2temp < albumID2 && searchResult.results[j].country === "UK") {
-                        albumID2 = albumID2temp;
-                        posUK = j;
-                    } 
-                    j++;
-                }
-                // if (j >= 0) {
-                //     albumID2 = searchResult.results[j].master_id;
-                //     if (j < searchResult.results.length - 1) {
-                //         var temp2 = searchResult.results.findIndex((album, pos) => pos > j && album.country === "UK");
-                //         if (temp2 != -1 && searchResult.results[temp2].master_id < albumID2) {
-                //             albumID2 = searchResult.results[temp2].master_id;
-                //             j = temp2;
-                //         }
-                //     }
-                // }
-
-                if (albumID1 < albumID2) {
-                    albumInfo = searchResult.results[posUS].title;
-                    year = "(" + searchResult.results[posUS].year + ")";
-                    imgURL = searchResult.results[posUS].cover_image;
-
-                    const tracklist = new Array();
-                    db.getMaster(albumID1, function(err, data){
-                        console.log(data);
-                        var trackNumber = 0;
-                        for (i = 0; i < data.tracklist.length; i++) {
-                            if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
-                                trackNumber++;
-                                if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
-                                else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
+    
+                    var j = searchResult.results.findIndex(album => album.country === "UK");
+                    var posUK = 0;
+    
+                    while (j >= 0 && j < searchResult.results.length - 1) {
+                        const albumID2temp = searchResult.results[j].master_id;
+                        if (albumID2temp < albumID2 && searchResult.results[j].country === "UK") {
+                            albumID2 = albumID2temp;
+                            posUK = j;
+                        } 
+                        j++;
+                    }
+    
+                    if (albumID1 < albumID2) {
+                        albumInfo = searchResult.results[posUS].title;
+                        year = "(" + searchResult.results[posUS].year + ")";
+                        imgURL = searchResult.results[posUS].cover_image;
+    
+                        const tracklist = new Array();
+                        db.getMaster(albumID1, function(err, data){
+                            console.log(data);
+                            var trackNumber = 0;
+                            for (i = 0; i < data.tracklist.length; i++) {
+                                if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
+                                    trackNumber++;
+                                    if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
+                                    else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
+                                }
                             }
-                        }
-                        const album = new userList({
-                            albumID: albumID1,
-                            title: albumInfo,
-                            year: year,
-                            img: imgURL,
-                            albumTracks: tracklist
+                            const album = new userList({
+                                albumID: albumID1,
+                                title: albumInfo,
+                                year: year,
+                                img: imgURL,
+                                albumTracks: tracklist
+                            });
+                            album.save();
                         });
-                        album.save();
-                    });
-                    
-                } else if (albumID1 > albumID2) {
-                    albumInfo = searchResult.results[posUK].title;
-                    year = "(" + searchResult.results[posUK].year + ")";
-                    imgURL = searchResult.results[posUK].cover_image;
-
-                    const tracklist = new Array();
-                    db.getMaster(albumID2, function(err, data){
-                        console.log(data);
-                        var trackNumber = 0;
-                        for (i = 0; i < data.tracklist.length; i++) {
-                            if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
-                                trackNumber++;
-                                if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
-                                else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
+                        
+                    } else if (albumID1 > albumID2) {
+                        albumInfo = searchResult.results[posUK].title;
+                        year = "(" + searchResult.results[posUK].year + ")";
+                        imgURL = searchResult.results[posUK].cover_image;
+    
+                        const tracklist = new Array();
+                        db.getMaster(albumID2, function(err, data){
+                            console.log(data);
+                            var trackNumber = 0;
+                            for (i = 0; i < data.tracklist.length; i++) {
+                                if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
+                                    trackNumber++;
+                                    if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
+                                    else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
+                                }
                             }
-                        }
-                        const album = new userList({
-                            albumID: albumID2,
-                            title: albumInfo,
-                            year: year,
-                            img: imgURL,
-                            albumTracks: tracklist
+                            const album = new userList({
+                                albumID: albumID2,
+                                title: albumInfo,
+                                year: year,
+                                img: imgURL,
+                                albumTracks: tracklist
+                            });
+                            album.save();
                         });
-                        album.save();
-                    });
-
-                } else {
-                    albumInfo = searchResult.results[0].title;
-                    year = "(" + searchResult.results[0].year + ")";
-                    imgURL = searchResult.results[0].cover_image;
-                    albumID1 = searchResult.results[0].master_id;
-
-                    const tracklist = new Array();
-                    db.getMaster(albumID1, function(err, data){
-                        console.log(data);
-                        var trackNumber = 0;
-                        for (i = 0; i < data.tracklist.length; i++) {
-                            if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
-                                trackNumber++;
-                                if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
-                                else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
+    
+                    } else {
+                        albumInfo = searchResult.results[0].title;
+                        year = "(" + searchResult.results[0].year + ")";
+                        imgURL = searchResult.results[0].cover_image;
+                        albumID1 = searchResult.results[0].master_id;
+    
+                        const tracklist = new Array();
+                        db.getMaster(albumID1, function(err, data){
+                            console.log(data);
+                            var trackNumber = 0;
+                            for (i = 0; i < data.tracklist.length; i++) {
+                                if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
+                                    trackNumber++;
+                                    if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
+                                    else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
+                                }
                             }
-                        }
-                        const album = new userList({
-                            albumID: albumID1,
-                            title: albumInfo,
-                            year: year,
-                            img: imgURL,
-                            albumTracks: tracklist
+                            const album = new userList({
+                                albumID: albumID1,
+                                title: albumInfo,
+                                year: year,
+                                img: imgURL,
+                                albumTracks: tracklist
+                            });
+                            album.save();
                         });
-                        album.save();
-                    });
+                    }
+    
+                    setTimeout(function () {
+                        res.redirect("userProfile?added=true");
+                    }, 1250);
                 }
-
-                setTimeout(function () {
-                    res.redirect("userProfile");
-                }, 1000);
-            }
-            else {
-                res.redirect("userProfile");
-            }
-        });
+                else {
+                    res.redirect("userProfile?error=true");
+                }
+            });
+        }
     }
 });
 

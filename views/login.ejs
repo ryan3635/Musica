@@ -1,29 +1,34 @@
-<%- include("header") %>
+<div id="feedFlex">
+    <%- include("header") %>
 
-<div id="toolbar">
-    <a href="/" class="buttonStyle">Go Back</a>
+    <div id="toolbar">
+        <a href="/" class="buttonStyle">Go Back</a>
+    </div>
+
+    <div id="header">
+        <h1>Musica</h1>
+        <hr>
+
+        <% if (accCreated) { %>
+            <p class="message">Account Created!</p>
+        <% } %>
+
+        <% if (error) { %>
+            <p class="message">Incorrect username or password!</p>
+        <% } %>
+
+        <form action="/login" method="POST">
+            <input type="email" name="username" id="username" placeholder="Email">
+            <br>
+            <input type="password" name="password" id="password" placeholder="Password">
+            <br>
+            <button type="submit" value="Login" class="buttonStyle" style="font-size: 2rem">Login</button>
+        </form>
+    </div>
+
+    <hr style="width: 25%; border-width: 2px; margin-top: -20px">
+    <br>
+    <a href="/auth/google" role="button" class="buttonStyle">Sign In With Google</a>
+
+    <%- include("footer") %>
 </div>
-
-<h1>Musica</h1>
-<hr>
-
-<% if (accCreated) { %>
-    <p class="message">Account Created!</p>
-<% } %>
-
-<% if (error) { %>
-    <p class="message">Incorrect username or password!</p>
-<% } %>
-
-<form action="/login" method="POST">
-    <input type="email" name="username" id="username" placeholder="Email">
-    <br>
-    <input type="password" name="password" id="password" placeholder="Password">
-    <br>
-    <button type="submit" value="Login" class="buttonStyle" style="font-size: 2rem">Login</button>
-</form>
-
-<br>
-<a href="/auth/google" role="button" class="buttonStyle">Sign In With Google</a>
-
-<%- include("footer") %>
