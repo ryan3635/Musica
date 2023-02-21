@@ -16,7 +16,6 @@ h1 {
     font-size: 6rem;
     font-family: "Shadows Into Light", Arial, sans-serif;
     margin: 0;
-    margin-top: 40px;
 }
 
 h2 {
@@ -83,7 +82,7 @@ form input:not([type="submit"])::placeholder {
 }
 
 #toolbar {
-    position: fixed;
+    display: block;
     text-align: right;
     float: left;
     z-index: 10;
