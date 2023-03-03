@@ -1,0 +1,49 @@
+<div id="feedFlex">
+    <%- include("header") %>
+
+    <div id="toolbar">
+        <% if (logged) { %>
+            <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp
+            <a href="/" class="buttonStyle">Feed</a> &nbsp
+            <a href="/logout" class="buttonStyle">Log Out</a>
+        <% } else { %>
+            <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp
+            <a href="/" class="buttonStyle">Feed</a>
+        <% } %>
+    </div>
+
+    <div id="header">
+        <h1>Musica</h1>
+        <hr>
+        <h2 class="textOverflow"><%=title%></h2>
+    </div>
+    <hr style="width: 25%; border-width: 2px;">
+
+    <br>
+    <div id="albumEntry">
+        <img src=<%=cover%> class=imgAlbum alt="Album cover not available">
+        <div id="albumTracks" class="hideScrollbar1 hideScrollbar2 trackList">
+            <% tracks.forEach(function(track) { %>
+                <p><%=track%></p>
+                <br>
+            <% }); %>   
+        </div>
+        <br><br>
+    </div>
+
+    <div id="info">
+        <p style="font-weight: bold; font-size: 110%"><%=artist%> - <%=title%></p>
+        <p>Release Year: <%=year%></p>
+        <p>Genre(s): <%=genre%></p>
+        <% if (videoTitle.length > 0) { %>
+            <p>Listen:</p>
+            <% for (i = 0; i < videoTitle.length; i++) { %>
+                <a style="margin-left: 1.5%" href="<%=videoLink[i]%>"><%=videoTitle[i]%></a>
+                <br>
+            <% } %>
+        <% } %>    
+        <br>
+    </div>
+    
+    <%- include("footer") %>
+</div>

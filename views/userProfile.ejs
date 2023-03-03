@@ -2,6 +2,7 @@
     <%- include("header") %>
 
     <div id="toolbar">
+        <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp
         <a href="/userHome" class="buttonStyle">Feed</a> &nbsp
         <a href="/logout" class="buttonStyle">Log Out</a>
     </div>
@@ -42,8 +43,10 @@
                         <p><%=track%></p>
                         <br>
                     <% }); %>
+                    <form action="/album/<%=item.albumID%>" method="post">
+                        <button type="submit" class="trackListButton buttonStyle">CHOOSE FAV'S</button>
+                    </form>
                 </div>
-
                 <br><br>
             </div>
         <% }); %>

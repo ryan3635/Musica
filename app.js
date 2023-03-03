@@ -184,6 +184,137 @@ app.get("/userProfile", function (req, res) {
 });
 
 
+app.get("/albumSearch", function (req, res) {
+    if (req.isAuthenticated()) {
+        res.render("albumSearch", {
+            error: req.query.error,
+            logged: true
+        });
+    } else {
+        res.render("albumSearch", {
+            error: req.query.error,
+            logged: false
+        });
+    }
+});
+
+
+app.get("/album/:albumId", function (req, res) {
+    const album = req.params.albumId;
+
+    var artistName = "";
+    var albumName = "";
+    var yearRelease = "";
+    var albumArt = "";
+    var videoTitle = new Array();
+    var videoLink = new Array();
+    var genreAlbum = new Array();
+    var tracklist = new Array();
+
+    db.getMaster(album, function(err, data) {
+        console.log(data);
+        if (data.artists !== undefined) {
+            artistName = data.artists[0].name;
+            albumName = data.title;
+            yearRelease = data.year;
+            albumArt = data.images[0].uri;
+    
+            if (data.videos !== undefined) {
+                var duplicates = new Array();
+    
+                for (i = 0; i < data.videos.length; i++) {
+                    const artist = artistName + " - ";
+                    const artistEnd = " - " + artistName;
+                    const title = data.videos[i].title;
+                    var titleDuplicate = "";
+                    var vidTitle = "";
+    
+                    if (title.startsWith(artist) || title.startsWith(artistName + " – ") || title.startsWith(artist.toLowerCase()) || title.startsWith(artistName.toLowerCase() + " – ")) {
+                        vidTitle = title.slice(artist.length, title.length);
+                        titleDuplicate = vidTitle.toLowerCase();
+                        if (!duplicates.includes(titleDuplicate)) {
+                            videoTitle.push(vidTitle);
+                            duplicates.push(titleDuplicate);
+                            videoLink.push(data.videos[i].uri);
+                        }
+                    } 
+                    else if (title.endsWith(artistEnd) || title.endsWith(" – " + artistName) || title.endsWith(artistEnd.toLowerCase()) || title.endsWith(" – " + artistName.toLowerCase())) {
+                        vidTitle = title.slice(0, title.length - artistEnd.length);
+                        titleDuplicate = vidTitle.toLowerCase();
+                        if (!duplicates.includes(titleDuplicate)) {
+                            videoTitle.push(vidTitle);
+                            duplicates.push(titleDuplicate);
+                            videoLink.push(data.videos[i].uri);
+                        }
+                    } 
+                    else {
+                        titleDuplicate = title.toLowerCase();
+                        if (!duplicates.includes(titleDuplicate)) {
+                            for (j = 0; j < data.tracklist.length; j++) {
+                                titleDuplicate = data.tracklist[j].title.toLowerCase();
+                                if (!duplicates.includes(titleDuplicate)) {
+                                    videoTitle.push(title);
+                                    duplicates.push(titleDuplicate);
+                                    videoLink.push(data.videos[i].uri);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+    
+            for (i = 0; i < data.genres.length; i++) {
+                if (!genreAlbum.includes(" " + data.genres[i])) genreAlbum.push(" " + data.genres[i]);
+            }
+            for (i = 0; i < data.styles.length; i++) {
+                if (!genreAlbum.includes(" " + data.styles[i])) genreAlbum.push(" " + data.styles[i]);
+            }
+    
+            var trackNumber = 0;
+            for (i = 0; i < data.tracklist.length; i++) {
+                if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
+                    trackNumber++;
+                    if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
+                    else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
+                }
+            }
+        } 
+    });
+
+    if (req.isAuthenticated()) {
+        setTimeout(function () {
+            res.render("album", {
+                logged: true,
+                artist: artistName,
+                title: albumName,
+                year: yearRelease,
+                cover: albumArt,
+                videoTitle: videoTitle,
+                videoLink: videoLink,
+                genre: genreAlbum,
+                tracks: tracklist
+            });
+        }, 1500);
+    } else {
+        setTimeout(function () {
+            res.render("album", {
+                logged: false,
+                artist: artistName,
+                title: albumName,
+                year: yearRelease,
+                cover: albumArt,
+                videoTitle: videoTitle,
+                videoLink: videoLink,
+                genre: genreAlbum,
+                tracks: tracklist
+            });
+        }, 1500);
+    }
+    
+});
+
+
 app.post("/login", passport.authenticate("local", {successRedirect: "/userHome", failureRedirect: "/login?error=true"}));
 
 
@@ -341,6 +472,151 @@ app.post("/userProfile", function (req, res) {
             });
         }
     }
+});
+
+
+app.post("/albumSearch", function (req, res) {
+    const artistName = req.body.userArtist;
+    const albumName = req.body.userAlbum;
+    const albumYear = req.body.year;
+
+    if (artistName === "" && albumName === "" && albumYear === "") res.redirect("albumSearch?error=true");
+
+    else {
+        db.search({artist: artistName, release_title: albumName, year: albumYear, type: "master"}).then(function (searchResult) {
+            var albumID1 = 99999999999999;
+            var albumID2 = 99999999999999;
+
+            if (searchResult.results.length > 0) {
+                var i = searchResult.results.findIndex(album => album.country === "US");
+                while (i >= 0 && i < searchResult.results.length - 1) {
+                    const albumID1temp = searchResult.results[i].master_id;
+                    if (albumID1temp < albumID1 && searchResult.results[i].country === "US") {
+                        albumID1 = albumID1temp;
+                    }
+                    i++;
+                }
+
+                var j = searchResult.results.findIndex(album => album.country === "UK");
+                while (j >= 0 && j < searchResult.results.length - 1) {
+                    const albumID2temp = searchResult.results[j].master_id;
+                    if (albumID2temp < albumID2 && searchResult.results[j].country === "UK") {
+                        albumID2 = albumID2temp;
+                    } 
+                    j++;
+                }
+
+                if (albumID1 < albumID2) {
+                    setTimeout(function () {
+                        res.redirect("album/" + albumID1);
+                    }, 1250);
+                } else {
+                    setTimeout(function () {
+                        res.redirect("album/" + albumID2);
+                    }, 1250);
+                }
+            }
+            else {
+                res.redirect("albumSearch?error=true");
+            }
+        });
+    }
+});
+
+
+app.post("/album/:albumId", function (req, res) {
+    const album = req.params.albumId;
+
+    var artistName = "";
+    var albumName = "";
+    var yearRelease = "";
+    var albumArt = "";
+    var videoTitle = new Array();
+    var videoLink = new Array();
+    var genreAlbum = new Array();
+    var tracklist = new Array();
+
+    db.getMaster(album, function(err, data) {
+        console.log(data);
+        if (data.artists !== undefined) {
+            artistName = data.artists[0].name;
+            albumName = data.title;
+            yearRelease = data.year;
+            albumArt = data.images[0].uri;
+
+            if (data.videos !== undefined) {
+                var duplicates = new Array();
+
+                for (i = 0; i < data.videos.length; i++) {
+                    const artist = artistName + " - ";
+                    const artistEnd = " - " + artistName;
+                    const title = data.videos[i].title;
+                    var titleDuplicate = "";
+                    var vidTitle = "";
+
+                    if (title.startsWith(artist) || title.startsWith(artistName + " – ") || title.startsWith(artist.toLowerCase()) || title.startsWith(artistName.toLowerCase() + " – ")) {
+                        vidTitle = title.slice(artist.length, title.length);
+                        titleDuplicate = vidTitle.toLowerCase();
+                        if (!duplicates.includes(titleDuplicate)) {
+                            videoTitle.push(vidTitle);
+                            duplicates.push(titleDuplicate);
+                            videoLink.push(data.videos[i].uri);
+                        }
+                    } 
+                    else if (title.endsWith(artistEnd) || title.endsWith(" – " + artistName) || title.endsWith(artistEnd.toLowerCase()) || title.endsWith(" – " + artistName.toLowerCase())) {
+                        vidTitle = title.slice(0, title.length - artistEnd.length);
+                        titleDuplicate = vidTitle.toLowerCase();
+                        if (!duplicates.includes(titleDuplicate)) {
+                            videoTitle.push(vidTitle);
+                            duplicates.push(titleDuplicate);
+                            videoLink.push(data.videos[i].uri);
+                        }
+                    } 
+                    else {
+                        titleDuplicate = title.toLowerCase();
+                        if (!duplicates.includes(titleDuplicate)) {
+                            for (j = 0; j < data.tracklist.length; j++) {
+                                titleDuplicate = data.tracklist[j].title.toLowerCase();
+                                if (!duplicates.includes(titleDuplicate)) {
+                                    videoTitle.push(title);
+                                    duplicates.push(titleDuplicate);
+                                    videoLink.push(data.videos[i].uri);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            for (i = 0; i < data.genres.length; i++) {
+                genreAlbum.push(" " + data.genres[i]);
+            }
+            for (i = 0; i < data.styles.length; i++) {
+                genreAlbum.push(" " + data.styles[i]);
+            }
+
+            var trackNumber = 0;
+            for (i = 0; i < data.tracklist.length; i++) {
+                if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
+                    trackNumber++;
+                    if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
+                    else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
+                }
+            }
+        }
+    });
+    setTimeout(function () {
+        res.render("album", {
+            artist: artistName,
+            title: albumName,
+            year: yearRelease,
+            cover: albumArt,
+            videoTitle: videoTitle,
+            videoLink: videoLink,
+            genre: genreAlbum,
+            tracks: tracklist
+        });
+    }, 1500);
 });
 
 
