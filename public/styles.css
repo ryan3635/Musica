@@ -47,7 +47,8 @@ form {
     display: inline-block;
     width: 100%;
     max-width: 25%;
-    padding: 30px 30px;
+    padding: 5px 5px;
+    margin-top: 10px;
 }
 
 form h1 {

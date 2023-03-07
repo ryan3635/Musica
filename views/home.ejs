@@ -3,6 +3,7 @@
 
     <div id="toolbar">
         <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp
+        <a href="/" class="buttonStyle">Feed</a> &nbsp
         <a href="/login" class="buttonStyle">Login</a> &nbsp
         <a href="/register" class="buttonStyle">Register</a>
     </div>
@@ -10,6 +11,9 @@
     <div id="header">
         <h1>Musica</h1>
         <hr>
+        <% if (loggedOut) { %>
+            <p class="message">Successfully Logged Out!</p>
+        <% } %>
         <h2>Public Feed</h2>
     </div>
     <hr style="width: 25%; border-width: 2px;">

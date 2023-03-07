@@ -5,6 +5,7 @@
         <% if (logged) { %>
             <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp
             <a href="/" class="buttonStyle">Feed</a> &nbsp
+            <a href="/userProfile" class="buttonStyle">Your Lists</a> &nbsp
             <a href="/logout" class="buttonStyle">Log Out</a>
         <% } else { %>
             <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp
@@ -28,8 +29,13 @@
                 <br>
             <% }); %>   
         </div>
-        <br><br>
     </div>
+
+    <% if (logged) { %>
+        <form action="/album/<%=albumID%>" method="post">
+            <button type="submit" class="buttonStyle" style="margin: 0 auto" name="add" value="added">Add To List</button>
+        </form>
+    <% } %>
 
     <div id="info">
         <p style="font-weight: bold; font-size: 110%"><%=artist%> - <%=title%></p>
@@ -44,6 +50,6 @@
         <% } %>    
         <br>
     </div>
-    
     <%- include("footer") %>
 </div>
+<br>
