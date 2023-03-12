@@ -7,11 +7,11 @@
     
     <div id="header">
         <h1>Musica</h1>
-        <hr>
         <% if (error) { %>
-            <p class="message">One or more fields were not entered, please try again!</p>
+            <p class="message hidden">One or more fields were not entered!</p>
         <% } %>
-
+        <hr>
+        
         <form action="/register" method="POST">
             <input type="email" name="username" id="username" placeholder="Email">
             <br>

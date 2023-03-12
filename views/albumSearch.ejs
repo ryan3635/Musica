@@ -13,11 +13,10 @@
 
     <div id="header">
         <h1>Musica</h1>
-        <hr>
-
         <% if (error) { %>
-            <p class="message">Album not found!</p>
+            <p class="message hidden">Album not found!</p>
         <% } %>
+        <hr>
 
         <form action="/albumSearch" method="post">
             <input type="text" name="userArtist" placeholder="Artist">

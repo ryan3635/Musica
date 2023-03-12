@@ -19,37 +19,33 @@
         <h2 class="textOverflow"><%=title%></h2>
     </div>
     <hr style="width: 25%; border-width: 2px;">
-
-    <br>
-    <div id="albumEntry">
+    
+    <div id="albumInfo">
+        <% if (logged) { %>
+            <form action="/album/<%=albumID%>" method="post" style="display: inline-block; position: absolute; display: inline; margin-top: 535px; margin-left: -35px;">
+                <button type="submit" class="buttonAddAlbum fadeIn" name="add" value="added">Add to List</button>
+            </form>
+        <% } %>
         <img src=<%=cover%> class=imgAlbum alt="Album cover not available">
-        <div id="albumTracks" class="hideScrollbar1 hideScrollbar2 trackList">
-            <% tracks.forEach(function(track) { %>
-                <p><%=track%></p>
+
+        <div id="info" class="hideScrollbar1 hideScrollbar2 fadeIn trackList">
+            <p style="font-weight: bold; font-size: 110%"><%=artist%> - <%=title%></p>
+            <p>Release Year: <%=year%></p>
+            <p>Genre(s): <%=genre%></p>
+            <p>- Tracklist -</p>
+                    <% tracks.forEach(function(track) { %>
+                        <p style="line-height: 0.2;"><%=track%></p>
+                    <% }); %>
                 <br>
-            <% }); %>   
+            <% if (videoMap.size > 0) { %>
+                <p>- Listen -</p>
+                <% for (const [key, value] of videoMap.entries()) { %>
+                    <a style="margin-left: 1.5%; font-size: 1.25rem; color: #15333f;" href="<%=value%>"><%=key%></a>
+                    <br>
+                <% } %>
+            <% } %>  
+            <br>
         </div>
-    </div>
-
-    <% if (logged) { %>
-        <form action="/album/<%=albumID%>" method="post">
-            <button type="submit" class="buttonStyle" style="margin: 0 auto" name="add" value="added">Add To List</button>
-        </form>
-    <% } %>
-
-    <div id="info">
-        <p style="font-weight: bold; font-size: 110%"><%=artist%> - <%=title%></p>
-        <p>Release Year: <%=year%></p>
-        <p>Genre(s): <%=genre%></p>
-        <% if (videoTitle.length > 0) { %>
-            <p>Listen:</p>
-            <% for (i = 0; i < videoTitle.length; i++) { %>
-                <a style="margin-left: 1.5%" href="<%=videoLink[i]%>"><%=videoTitle[i]%></a>
-                <br>
-            <% } %>
-        <% } %>    
-        <br>
     </div>
     <%- include("footer") %>
 </div>
-<br>

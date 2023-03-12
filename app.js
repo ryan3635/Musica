@@ -203,6 +203,7 @@ app.get("/album/:albumId", function (req, res) {
     var albumArt = "";
     var videoTitle = new Array();
     var videoLink = new Array();
+    var videoMap = new Map();
     var genreAlbum = new Array();
     var tracklist = new Array();
 
@@ -214,48 +215,36 @@ app.get("/album/:albumId", function (req, res) {
             albumArt = data.images[0].uri;
     
             if (data.videos !== undefined) {
-                var duplicates = new Array();
-    
                 for (i = 0; i < data.videos.length; i++) {
                     const artist = artistName + " - ";
                     const artistEnd = " - " + artistName;
                     const title = data.videos[i].title;
-                    var titleDuplicate = "";
                     var vidTitle = "";
-    
+
                     if (title.startsWith(artist) || title.startsWith(artistName + " – ") || title.startsWith(artist.toLowerCase()) || title.startsWith(artistName.toLowerCase() + " – ")) {
                         vidTitle = title.slice(artist.length, title.length);
-                        titleDuplicate = vidTitle.toLowerCase();
-                        if (!duplicates.includes(titleDuplicate)) {
-                            videoTitle.push(vidTitle);
-                            duplicates.push(titleDuplicate);
-                            videoLink.push(data.videos[i].uri);
-                        }
-                    } 
+                        videoTitle.push(vidTitle);
+                        videoLink.push(data.videos[i].uri);
+                    }
                     else if (title.endsWith(artistEnd) || title.endsWith(" – " + artistName) || title.endsWith(artistEnd.toLowerCase()) || title.endsWith(" – " + artistName.toLowerCase())) {
                         vidTitle = title.slice(0, title.length - artistEnd.length);
-                        titleDuplicate = vidTitle.toLowerCase();
-                        if (!duplicates.includes(titleDuplicate)) {
-                            videoTitle.push(vidTitle);
-                            duplicates.push(titleDuplicate);
-                            videoLink.push(data.videos[i].uri);
-                        }
-                    } 
+                        videoTitle.push(vidTitle);
+                        videoLink.push(data.videos[i].uri);
+                    }
                     else {
-                        titleDuplicate = title.toLowerCase();
-                        if (!duplicates.includes(titleDuplicate)) {
-                            for (j = 0; j < data.tracklist.length; j++) {
-                                titleDuplicate = data.tracklist[j].title.toLowerCase();
-                                if (!duplicates.includes(titleDuplicate)) {
-                                    videoTitle.push(title);
-                                    duplicates.push(titleDuplicate);
-                                    videoLink.push(data.videos[i].uri);
-                                    break;
-                                }
-                            }
-                        }
+                        videoTitle.push(data.videos[i].title);
+                        videoLink.push(data.videos[i].uri);
                     }
                 }
+                
+                var videoTitleLower = new Array();
+                var videoMapTemp = new Map();
+
+                for (k = 0; k < videoTitle.length; k++) {
+                    videoTitleLower.push(videoTitle[k].toLowerCase());
+                    videoMapTemp.set(videoTitleLower[k], videoLink[k]);
+                }
+                videoMap = new Map ([...videoMapTemp].sort((a, b) => String(a[0]).localeCompare(b[0])));
             }
     
             if (data.genres !== undefined) {
@@ -301,12 +290,11 @@ app.get("/album/:albumId", function (req, res) {
                             title: albumName,
                             year: yearRelease,
                             cover: albumArt,
-                            videoTitle: videoTitle,
-                            videoLink: videoLink,
+                            videoMap: videoMap,
                             genre: genreAlbum,
                             tracks: tracklist
                         });
-                    }, 1500);
+                    }, 500);
                 }
             }
             
@@ -319,12 +307,11 @@ app.get("/album/:albumId", function (req, res) {
                         title: albumName,
                         year: yearRelease,
                         cover: albumArt,
-                        videoTitle: videoTitle,
-                        videoLink: videoLink,
+                        videoMap: videoMap,
                         genre: genreAlbum,
                         tracks: tracklist
                     });
-                }, 1500);
+                }, 500);
             }
         }
     });
@@ -426,6 +413,7 @@ app.post("/album/:albumId", function (req, res) {
     var albumArt = "";
     var videoTitle = new Array();
     var videoLink = new Array();
+    var videoMap = new Map();
     var genreAlbum = new Array();
     var tracklist = new Array();
 
@@ -437,48 +425,36 @@ app.post("/album/:albumId", function (req, res) {
             albumArt = data.images[0].uri;
 
             if (data.videos !== undefined) {
-                var duplicates = new Array();
-
                 for (i = 0; i < data.videos.length; i++) {
                     const artist = artistName + " - ";
                     const artistEnd = " - " + artistName;
                     const title = data.videos[i].title;
-                    var titleDuplicate = "";
                     var vidTitle = "";
 
                     if (title.startsWith(artist) || title.startsWith(artistName + " – ") || title.startsWith(artist.toLowerCase()) || title.startsWith(artistName.toLowerCase() + " – ")) {
                         vidTitle = title.slice(artist.length, title.length);
-                        titleDuplicate = vidTitle.toLowerCase();
-                        if (!duplicates.includes(titleDuplicate)) {
-                            videoTitle.push(vidTitle);
-                            duplicates.push(titleDuplicate);
-                            videoLink.push(data.videos[i].uri);
-                        }
-                    } 
+                        videoTitle.push(vidTitle);
+                        videoLink.push(data.videos[i].uri);
+                    }
                     else if (title.endsWith(artistEnd) || title.endsWith(" – " + artistName) || title.endsWith(artistEnd.toLowerCase()) || title.endsWith(" – " + artistName.toLowerCase())) {
                         vidTitle = title.slice(0, title.length - artistEnd.length);
-                        titleDuplicate = vidTitle.toLowerCase();
-                        if (!duplicates.includes(titleDuplicate)) {
-                            videoTitle.push(vidTitle);
-                            duplicates.push(titleDuplicate);
-                            videoLink.push(data.videos[i].uri);
-                        }
-                    } 
+                        videoTitle.push(vidTitle);
+                        videoLink.push(data.videos[i].uri);
+                    }
                     else {
-                        titleDuplicate = title.toLowerCase();
-                        if (!duplicates.includes(titleDuplicate)) {
-                            for (j = 0; j < data.tracklist.length; j++) {
-                                titleDuplicate = data.tracklist[j].title.toLowerCase();
-                                if (!duplicates.includes(titleDuplicate)) {
-                                    videoTitle.push(title);
-                                    duplicates.push(titleDuplicate);
-                                    videoLink.push(data.videos[i].uri);
-                                    break;
-                                }
-                            }
-                        }
+                        videoTitle.push(data.videos[i].title);
+                        videoLink.push(data.videos[i].uri);
                     }
                 }
+
+                var videoTitleLower = new Array();
+                var videoMapTemp = new Map();
+
+                for (k = 0; k < videoTitle.length; k++) {
+                    videoTitleLower.push(videoTitle[k].toLowerCase());
+                    videoMapTemp.set(videoTitleLower[k], videoLink[k]);
+                }
+                videoMap = new Map ([...videoMapTemp].sort((a, b) => String(a[0]).localeCompare(b[0])));
             }
 
             if (data.genres !== undefined) {
@@ -524,12 +500,11 @@ app.post("/album/:albumId", function (req, res) {
                             title: albumName,
                             year: yearRelease,
                             cover: albumArt,
-                            videoTitle: videoTitle,
-                            videoLink: videoLink,
+                            videoMap: videoMap,
                             genre: genreAlbum,
                             tracks: tracklist
                         });
-                    }, 1500);
+                    }, 500);
                 }
             }
             
@@ -542,12 +517,11 @@ app.post("/album/:albumId", function (req, res) {
                         title: albumName,
                         year: yearRelease,
                         cover: albumArt,
-                        videoTitle: videoTitle,
-                        videoLink: videoLink,
+                        videoMap: videoMap,
                         genre: genreAlbum,
                         tracks: tracklist
                     });
-                }, 1500);
+                }, 500);
             }
         }
     });

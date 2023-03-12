@@ -10,17 +10,16 @@
 
     <div id="header">
         <h1>Musica</h1>
-        <hr>
-
         <% /* %>
         <% if (error) { %>
-            <p class="message">Album not found!</p>
+            <p class="message hidden">Album not found!</p>
         <% } %>
         <% */ %>
 
         <% if (added) { %>
-            <p class="message">Album added!</p>
+            <p class="message hidden">Album added!</p>
         <% } %>
+        <hr>
 
         <form action="/userProfile" method="post">
             <% /* %>
@@ -30,7 +29,7 @@
             <br>
             <input type="text" name="year" placeholder="Year">
             <% */ %>
-            <button type="submit" class="buttonStyle" name="add" value="added" style="font-size: 2rem">Add Album</button>
+            <button type="submit" class="buttonStyle" class="buttonStyle" name="add" value="added" style="font-size: 2.2rem;">Add Album</button>
         </form>
         <hr style="width: 25%; border-width: 2px; margin-top: -20px">
     </div>
@@ -38,11 +37,11 @@
     <div id="albumsFlex">
         <% var position = 1; %>
         <% albumList.forEach(function (item) { %>
+            <h3><%=position%>.&nbsp <%=item.year%> <%=item.title%></h3>
+
             <div id="albumEntry">
-                <h3><%=position%>.&nbsp <%=item.year%> <%=item.title%></h3>
                 <% position++ %>
                 <img src=<%=item.img %> class=imgAlbum alt="Album cover not available">
-
                 <div id="albumTracks" class="hideScrollbar1 hideScrollbar2 trackList">
                     <% item.albumTracks.forEach(function(track) { %>
                         <p><%=track%></p>

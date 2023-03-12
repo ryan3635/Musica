@@ -5,6 +5,7 @@ html {
 
 body {
     height: 100%;
+    width: 100%;
     margin: 0;
     background-image: linear-gradient(to bottom right, #B9F3E4, #0F6292);
     background-repeat: no-repeat;
@@ -16,6 +17,8 @@ h1 {
     font-size: 6rem;
     font-family: "Shadows Into Light", Arial, sans-serif;
     margin: 0;
+    display: inline-block;
+    vertical-align: top;
 }
 
 h2 {
@@ -28,7 +31,8 @@ h2 {
 }
 
 h3 {
-    margin-left: 8.5%;
+    width: 600px;
+    margin-left: 6.5%;
     text-align: left;
     font-size: 1.3rem;
     font-style: italic;
@@ -89,7 +93,7 @@ form input:not([type="submit"])::placeholder {
     text-align: right;
     float: left;
     z-index: 10;
-    width: 99%;
+    width: 99.5%;
 }
 
 #header {
@@ -101,50 +105,108 @@ form input:not([type="submit"])::placeholder {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    height: 665px;
-    width: 1000px;
+    width: 50%;
     z-index: 4;
+    margin-left: 5%;
 }
 
 #albumEntry {
-    width: 945px;
-    margin-left: 10.5%;
+    width: 300%;
+}
+
+#albumInfo {
+    display: inline;
+    margin-right: 615px;
+    margin-top: 20px;
+    z-index: 1;
 }
 
 #albumTracks {
     position: absolute;
     display: inline-block;
-    margin: 0 auto 0 auto;
-    padding-left: 1.2%;
+    height: 600px;
+    width: 325px;
+    margin: 0 auto 0 15px;
+    padding-left: 25px;
     text-align: left;
     line-height: 0;
     font-family: 'Caveat', sans-serif;
     font-size: 110%;
-    height: 600px;
-    width: 350px;
     overflow-y: auto;
     white-space: nowrap;
     z-index: 3;
+    background-image: linear-gradient(to bottom left, #F9F54B, #0F6292);
+    background-attachment: fixed;
+    border-top-left-radius: 10%;
+    border-bottom-left-radius: 10%;
+    box-shadow: 3px 3px #15333f;
 }
 
 #info {
+    position: absolute;
     display: inline-block;
-    text-align: left;
+    height: 600px;
+    width: 500px;
+    margin: 0 auto 0 15px;
+    color: black;
+    font-family: "Shadows Into Light", Arial, sans-serif;
+    font-weight: 850;
+    box-sizing: border-box;
+    text-align: center;
     font-style: italic;
-    font-size: 1.25rem;
-    margin-left: 10.5%;
-    max-width: 50%;
+    font-size: 1.225rem;
+    padding-left: 15px;
+    padding-Right: 15px;
+    overflow-y: auto;
+    border-top-left-radius: 10%;
+    border-bottom-left-radius: 10%;
+    text-underline-offset: 13.7%;
+    background-image: linear-gradient(to bottom left, #F9F54B, #0F6292);
+    background-attachment: fixed;
+    transition: 1s;
+    box-shadow: 3px 3px #15333f;
+    z-index: 30;
 }
 
 .hidden {
-    visibility: hidden;
+    animation: fadeOut ease;
+    animation-fill-mode: forwards;
+    animation-duration: 6s
+}
+
+.fadeIn {
+    animation: fadeIn;
+    animation-fill-mode: forwards;
+    animation-duration: 2.5s
+}
+
+@keyframes fadeOut {
+    0% {opacity: 0}
+    50% {opacity: 1}
+    75% {opacity: 1}
+    100% {opacity: 0}
+}
+
+@keyframes fadeIn {
+    0% {opacity: 0}
+    100% {opacity: 1}
 }
 
 .message {
-    display: block;
+    font-size: 1.75rem;
+    width: 500px;
+    display: inline-block;
     color: black;
     font-weight: bold;
-    font-size: 1.2rem;
+    background-color: #F9F54B;
+    border-radius: 100%;
+    font-style: italic;
+    text-align: center;
+    position: absolute;
+    margin-left: 300px;
+    margin-top: 30px;
+    padding: 25px 0 25px 0;
+    transition: 1s;
 }
 
 .buttonStyle {
@@ -152,30 +214,63 @@ form input:not([type="submit"])::placeholder {
     font-size: 1.5rem;
     font-family: "Shadows Into Light", Arial, sans-serif;
     margin: 0;
-    text-decoration: underline dotted;
+    text-decoration: underline;
     background-color: transparent;
     border: none;
     padding: 0;
     cursor: pointer;
+    text-underline-offset: 13.5%;
 }
 
-.imgAlbum {
-    object-fit: fill;
-    width: 600px;
-    height: 600px;
+.buttonAddAlbum {
+    display: block;
+    position: relative;
+    color: black;
+    font-size: 2rem;
+    width: 205px;
+    font-style: italic;
+    font-family: "Shadows Into Light", Arial, sans-serif;
+    font-weight: bold;
+    text-decoration: underline;
+    border: none;
+    cursor: pointer;
+    text-underline-offset: 13.5%;
+    padding: 15px 0 15px 0;
+    background-color: #F9F54B;
+    border-radius: 80%;
+    z-index: 31;
+    transition: 1s;
+    box-shadow: 2px 2px #15333f;
 }
 
-.textOverflow {
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
+.formAddAlbum {
+    text-align: center;
+    display: inline;
+    position: absolute;
+    margin-top: 555px;
+    margin-left: -35px;
 }
 
 .trackListButton {
     display: none;
     font-size: 110%; 
     font-weight: bold;
-    color: black;
+    color: #15333f;
+}
+
+.imgAlbum {
+    object-fit: fill;
+    margin: 0 auto 0 15px;
+    width: 600px;
+    height: 600px;
+    position: relative;
+    z-index: 30;
+}
+
+.textOverflow {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .trackList:hover {
@@ -192,7 +287,7 @@ form input:not([type="submit"])::placeholder {
 
 .hideScrollbar1::-webkit-scrollbar {
     display: none;
-  }
+}
 
 .hideScrollbar2 {
     -ms-overflow-style: none;
