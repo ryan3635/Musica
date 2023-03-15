@@ -39,10 +39,12 @@
                 <br>
             <% if (videoMap.size > 0) { %>
                 <p>- Listen -</p>
-                <% for (const [key, value] of videoMap.entries()) { %>
-                    <a style="margin-left: 1.5%; font-size: 1.25rem; color: #15333f;" href="<%=value%>"><%=key%></a>
-                    <br>
-                <% } %>
+                <div class="textOverflow">
+                    <% for (const [key, value] of videoMap.entries()) { %>
+                        <a style="margin-left: 1.5%; font-size: 1.25rem; line-height: 1.8; color: #15333f; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;" href="<%=value%>"><%=key%></a>
+                        <br>
+                    <% } %>
+                </div>
             <% } %>  
             <br>
         </div>
