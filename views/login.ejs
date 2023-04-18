@@ -7,11 +7,11 @@
     <div id="header">
         <h1>Musica</h1>
         <% if (accCreated) { %>
-            <p class="message hidden">Account Created!</p>
+            <p class="message hidden">Account Created! Please Login</p>
         <% } %>
 
         <% if (error) { %>
-            <p class="message hidden">Incorrect username or password!</p>
+            <p class="message hidden">Incorrect email or password!</p>
         <% } %>
         <hr>
 
@@ -22,11 +22,13 @@
             <br>
             <button type="submit" value="Login" class="buttonStyle" style="font-size: 2rem">Login</button>
         </form>
+        <hr style="width: 25%; border-width: 2px; margin-top: -15px">
+        <br>
+    
+        <a href="/auth/google" role="button" class="buttonStyle" style="display: inline-block; text-align: center">Sign In With Google</a>
+        <br>
+        <a href="/forget" role="button" class="buttonStyle" style="display: inline-block; text-align: center">Forgot Display Name/Password?</a>
     </div>
-
-    <hr style="width: 25%; border-width: 2px; margin-top: -15px">
-    <br>
-    <a href="/auth/google" role="button" class="buttonStyle">Sign In With Google</a>
 
     <%- include("footer") %>
 </div>

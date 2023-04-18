@@ -3,9 +3,10 @@
 
     <div id="toolbar">
         <% if (logged) { %>
-            <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp
             <a href="/" class="buttonStyle">Feed</a> &nbsp
+            <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp
             <a href="/userProfile" class="buttonStyle">Your Lists</a> &nbsp
+            <a href="/account" class="buttonStyle">Account</a> &nbsp
             <a href="/logout" class="buttonStyle">Log Out</a>
         <% } else { %>
             <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp
@@ -28,13 +29,13 @@
         <% } %>
         <img src=<%=cover%> class=imgAlbum alt="Album cover not available">
 
-        <div id="info" class="hideScrollbar1 hideScrollbar2 fadeIn trackList">
+        <div id="info" class="fadeIn trackListAlbum">
             <p style="font-weight: bold; font-size: 110%"><%=artist%> - <%=title%></p>
             <p>Release Year: <%=year%></p>
             <p>Genre(s): <%=genre%></p>
             <p>- Tracklist -</p>
                     <% tracks.forEach(function(track) { %>
-                        <p style="line-height: 0.2;"><%=track%></p>
+                        <p style="line-height: 0.85;"><%=track%></p>
                     <% }); %>
                 <br>
             <% if (videoMap.size > 0) { %>

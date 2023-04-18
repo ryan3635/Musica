@@ -214,6 +214,7 @@ form input:not([type="submit"])::placeholder {
     font-size: 1.5rem;
     font-family: "Shadows Into Light", Arial, sans-serif;
     margin: 0;
+    width: fit-content;
     text-decoration: underline;
     background-color: transparent;
     border: none;
@@ -271,6 +272,12 @@ form input:not([type="submit"])::placeholder {
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
+}
+
+.trackListAlbum {
+    scrollbar-width: thin;
+    -ms-overflow-style: auto;
+    display: inline-block;
 }
 
 .trackList:hover {

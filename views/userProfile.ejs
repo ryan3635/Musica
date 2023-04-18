@@ -2,19 +2,15 @@
     <%- include("header") %>
 
     <div id="toolbar">
-        <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp
         <a href="/userHome" class="buttonStyle">Feed</a> &nbsp
+        <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp
         <a href="/userProfile" class="buttonStyle">Your Lists</a> &nbsp
+        <a href="/account" class="buttonStyle">Account</a> &nbsp
         <a href="/logout" class="buttonStyle">Log Out</a>
     </div>
 
     <div id="header">
         <h1>Musica</h1>
-        <% /* %>
-        <% if (error) { %>
-            <p class="message hidden">Album not found!</p>
-        <% } %>
-        <% */ %>
 
         <% if (added) { %>
             <p class="message hidden">Album added!</p>
@@ -22,13 +18,6 @@
         <hr>
 
         <form action="/userProfile" method="post">
-            <% /* %>
-            <input type="text" name="userArtist" placeholder="Artist">
-            <br>
-            <input type="text" name="userAlbum" placeholder="Album">
-            <br>
-            <input type="text" name="year" placeholder="Year">
-            <% */ %>
             <button type="submit" class="buttonStyle" class="buttonStyle" name="add" value="added" style="font-size: 2.2rem;">Add Album</button>
         </form>
         <hr style="width: 25%; border-width: 2px; margin-top: -20px">

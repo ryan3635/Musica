@@ -10,20 +10,28 @@
         <% if (error) { %>
             <p class="message hidden">One or more fields were not entered!</p>
         <% } %>
+
+        <% if (duplicatePwError) { %>
+            <p class="message hidden">Re-Entered Password Didn't Match!</p>
+        <% } %>
         <hr>
         
         <form action="/register" method="POST">
             <input type="email" name="username" id="username" placeholder="Email">
             <br>
-            <input type="password" name="password" id="password" placeholder="Password">
+            <input type="text" name="displayname" id="displayname" placeholder="Display Name">
+            <br>
+            <input type="password" name="passwordNew1" id="passwordNew1" placeholder="New Password">
+            <br>
+            <input type="password" name="passwordNew2" id="passwordNew2" placeholder="Re-Enter New Password">
             <br>
             <button type="submit" value="Register" class="buttonStyle" style="font-size: 2rem">Register</button>
         </form>
+
+        <hr style="width: 25%; border-width: 2px; margin-top: -15px">
+        <br>
+        <a href="/auth/google" role="button" class="buttonStyle">Sign Up With Google</a>
     </div>
     
-    <hr style="width: 25%; border-width: 2px; margin-top: -15px">
-    <br>
-    <a href="/auth/google" role="button" class="buttonStyle">Sign Up With Google</a>
-
     <%- include("footer") %>
 </div>

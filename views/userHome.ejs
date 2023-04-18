@@ -4,11 +4,19 @@
     <div id="toolbar">
         <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp
         <a href="/userProfile" class="buttonStyle">Your Lists</a> &nbsp
+        <a href="/account" class="buttonStyle">Account</a> &nbsp
         <a href="/logout" class="buttonStyle">Log Out</a>
     </div>
     
     <div id="header">
         <h1>Musica</h1>
+        <% if (loggedIn) { %>
+            <p class="message hidden">Successfully Logged In!</p>
+        <% } %>
+
+        <% if (googleDisplayname) { %>
+            <p class="message hidden">Display Name Updated!</p>
+        <% } %>
         <hr>
         <h2>Your Feed</h2>
     </div>

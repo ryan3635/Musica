@@ -45,6 +45,7 @@ const userList = new mongoose.model("List", userListSchema);
 const userLoginSchema = new mongoose.Schema({
     username: String,
     password: String,
+    displayname: String,
     googleId: String,
 });
 
@@ -91,7 +92,14 @@ passport.use(new GoogleStrategy({
 
 app.get("/", function (req, res) {
     if (req.isAuthenticated()) {
-        res.render("userHome");
+        if (req.user.displayname === undefined) res.redirect("/change/displayname");
+        else {
+            const logged = {
+                loggedIn: req.query.loggedIn,
+                googleDisplayname: req.query.googleDisplayname
+            }
+            res.render("userHome", logged);
+        }
     } else res.render("home", {loggedOut: false});
 });
 
@@ -116,7 +124,8 @@ app.get("/register", function (req, res) {
     } else {
         const errCheck = {
             page: "Register",
-            error: req.query.error
+            error: req.query.error,
+            duplicatePwError: req.query.duplicatePwError
         };
         res.render("register", errCheck);
     }
@@ -141,6 +150,105 @@ app.get("/loggedIn", function (req, res) {
 });
 
 
+app.get("/account", function (req, res) {
+    if (req.isAuthenticated()) {
+        if (req.user.googleId === undefined) {
+            const message = {
+                displaynameUpdate: req.query.displaynameUpdate,
+                emailUpdate: req.query.emailUpdate,
+                passwordUpdate: req.query.passwordUpdate,
+                googleAcc: false
+            }
+            res.render("account", message);
+        }
+        else if (req.user.googleId !== undefined) {
+            const message = {
+                displaynameUpdate: req.query.displaynameUpdate,
+                emailUpdate: req.query.emailUpdate,
+                passwordUpdate: req.query.passwordUpdate,
+                googleAcc: true
+            }
+            res.render("account", message);
+        } else res.redirect("/account");
+    }
+    else res.redirect("/login");
+});
+
+
+app.get("/forget", function (req, res) {
+    if (!req.isAuthenticated()) {
+        const message = {
+            page: "Forget",
+            entered: req.query.entered,
+            error: req.query.error
+        }
+        res.render("forget", message);
+    }
+    else res.redirect("/loggedIn");
+});
+
+
+app.get("/change/:type", function (req, res) {
+    const type = req.params.type;
+    if (req.isAuthenticated()) {
+        if (type === "displayname") {
+            if (req.user.googleId === undefined) {
+                const changeType = {
+                    page: "Change",
+                    error: req.query.error,
+                    pwError: req.query.pwError,
+                    duplicatePwError: req.query.duplicatePwError,
+                    buttonValue: "changeDisplayname",
+                    googleAcc: false
+                }
+                res.render("change", changeType);
+            }
+            else {
+                const changeType = {
+                    page: "Change",
+                    error: req.query.error,
+                    pwError: req.query.pwError,
+                    duplicatePwError: req.query.duplicatePwError,
+                    buttonValue: "changeDisplayname",
+                    googleAcc: true
+                }
+                res.render("change", changeType);
+            }
+        }
+        else if (type === "email") {
+            if (req.user.googleId !== undefined) res.redirect("/account");
+            else {
+                const changeType = {
+                    page: "Change",
+                    error: req.query.error,
+                    pwError: req.query.pwError,
+                    duplicatePwError: req.query.duplicatePwError,
+                    buttonValue: "changeEmail",
+                    googleAcc: false
+                }
+                res.render("change", changeType);
+            }
+        }
+        else if (type === "password") {
+            if (req.user.googleId !== undefined) res.redirect("/account");
+            else {
+                const changeType = {
+                    page: "Change",
+                    error: req.query.error,
+                    pwError: req.query.pwError,
+                    duplicatePwError: req.query.duplicatePwError,
+                    buttonValue: "changePassword",
+                    googleAcc: false
+                }
+                res.render("change", changeType);
+            }
+        }
+        else res.redirect("/account");
+    }
+    else res.redirect("/login");
+});
+
+
 app.get("/auth/google",
     passport.authenticate('google', {scope: ["profile"]})
 );
@@ -155,7 +263,14 @@ app.get("/auth/google/userHome",
 
 app.get("/userHome", function (req, res) {
     if (req.isAuthenticated()) {
-        res.render("userHome");
+        if (req.user.displayname === undefined) res.redirect("/change/displayname");
+        else {
+            const logged = {
+                loggedIn: req.query.loggedIn,
+                googleDisplayname: req.query.googleDisplayname
+            }
+            res.render("userHome", logged);
+        }
     } else {
         res.redirect("/login");
     }
@@ -318,27 +433,138 @@ app.get("/album/:albumId", function (req, res) {
 });
 
 
-app.post("/login", passport.authenticate("local", {successRedirect: "/userHome", failureRedirect: "/login?error=true"}));
+app.post("/login", passport.authenticate("local", {successRedirect: "/userHome?loggedIn=true", failureRedirect: "/login?error=true"}));
 
 
 app.post("/register", function (req, res) {
-    if (req.body.username === "" || req.body.password === "") res.redirect("/register?error=true");
+    if (req.body.username === "" || req.body.displayname === "" || req.body.passwordNew1 === "" || req.body.passwordNew2 === "") res.redirect("/register?error=true");
     else if (req.isAuthenticated()) res.redirect("/loggedIn");
     else {
-        bcrypt.genSalt(10, function (err, salt) {
-            if (err) return next(err);
-            bcrypt.hash(req.body.password, salt, function (err, hash) {
-                if (err) res.redirect("/register?error=true");
-    
-                const newUser = new UserLogin({
-                    username: req.body.username,
-                    password: hash
+        if (req.body.passwordNew1 !== req.body.passwordNew2) {
+            res.redirect("/register?duplicatePwError=true");
+        }
+        else {
+            bcrypt.genSalt(10, function (err, salt) {
+                if (err) return next(err);
+                bcrypt.hash(req.body.passwordNew2, salt, function (err, hash) {
+                    if (err) res.redirect("/register?duplicatePwError=true");
+                    const newUser = new UserLogin({
+                        username: req.body.username,
+                        password: hash,
+                        displayname: req.body.displayname
+                    });
+                    newUser.save();
+                    res.redirect("/login?accCreated=true");
                 });
-                newUser.save();
-                res.redirect("/login?accCreated=true");
             });
-        });
+        }
     }
+});
+
+
+app.post("/forget", function (req, res) {
+    if (req.body.username === "") res.redirect("/forget?error=true")
+    else {
+        //send email
+        res.redirect("/forget?entered=true")
+    }
+});
+
+
+app.post("/change/:type", function (req, res) {
+    if (req.isAuthenticated()) {
+        const type = req.params.type;
+        if (type === "displayname") {
+            if (req.user.googleId === undefined) {
+                if (req.body.displayname === "" || req.body.password === "") res.redirect("/change/displayname?error=true");
+                else {
+                    UserLogin.findOne({"_id": req.user._id}, function (err, user) {
+                        if (err) return next(err);
+                        bcrypt.compare(req.body.password, user.password, function (err, result) {
+                            if (err) res.redirect("/change/displayname?pwError=true");
+                            if (result === false) res.redirect("/change/displayname?pwError=true");
+                            else {
+                                if (req.body.displayname === "") res.redirect("/change/displayname?error=true");
+                                UserLogin.updateOne({"_id": req.user._id}, {$set: {displayname: req.body.displayname}}, function (err, result) {
+                                    if (err) return next(err);
+                                    else {
+                                        res.redirect("/account?displaynameUpdate=true");
+                                    }
+                                });
+                            }
+                        });
+                    });
+                }
+            }
+            else {
+                if (req.body.displayname === "") res.redirect("/change/displayname?error=true");
+                else {
+                    UserLogin.updateOne({"_id": req.user._id}, {$set: {displayname: req.body.displayname}}, function (err, result) {
+                        if (err) return next(err);
+                        else {
+                            res.redirect("/userHome?googleDisplayname=true");
+                        }
+                    });
+                }
+            }
+        }
+
+        else if (type === "email") {
+            if (req.user.googleId !== undefined) res.redirect("/account");
+            if (req.body.email === "" || req.body.password === "") res.redirect("/change/email?error=true");
+            else {
+                UserLogin.findOne({"_id": req.user._id}, function (err, user) {
+                    if (err) return next(err);
+                    bcrypt.compare(req.body.password, user.password, function (err, result) {
+                        if (err) res.redirect("/change/email?pwError=true");
+                        if (result === false) res.redirect("/change/email?pwError=true");
+                        else {
+                            UserLogin.updateOne({"_id": req.user._id}, {$set: {username: req.body.email}}, function (err, result) {
+                                if (err) return next(err);
+                                else {
+                                    res.redirect("/account?emailUpdate=true");
+                                }
+                            });
+                        }
+                    });
+                });
+            }
+        }
+
+        else if (type === "password") {
+            if (req.user.googleId !== undefined) res.redirect("/account");
+            if (req.body.password === "" || req.body.passwordNew1 === "" || req.body.passwordNew2 === "") res.redirect("/change/password?error=true");
+            else {
+                UserLogin.findOne({"_id": req.user._id}, function (err, user) {
+                    if (err) return next(err);
+                    bcrypt.compare(req.body.password, user.password, function (err, result) {
+                        if (err) res.redirect("/change/password?pwError=true");
+                        if (result === false) res.redirect("/change/password?pwError=true");
+                        else {
+                            if (req.body.passwordNew1 !== req.body.passwordNew2) {
+                                res.redirect("/change/password?duplicatePwError=true");
+                            }
+                            else {
+                                bcrypt.genSalt(10, function (err, salt) {
+                                    if (err) return next(err);
+                                    bcrypt.hash(req.body.passwordNew2, salt, function (err, hash) {
+                                        if (err) res.redirect("/change/password?duplicatePwError=true");
+                                        UserLogin.updateOne({"_id": req.user._id}, {$set: {password: hash}}, function (err, result) {
+                                            if (err) return next(err);
+                                            else {
+                                                res.redirect("/account?passwordUpdate=true");
+                                            }
+                                        });
+                                    });
+                                });
+                            }
+                        }
+                    });
+                });
+            }
+        }
+    }
+    else res.redirect("/login");
 });
 
 

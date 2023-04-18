@@ -1,0 +1,39 @@
+<div id="feedFlex">
+    <%- include("header") %>
+    <div id="toolbar">
+        <a href="/" class="buttonStyle">Feed</a> &nbsp
+        <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp
+        <a href="/userProfile" class="buttonStyle">Your Lists</a> &nbsp
+        <a href="/logout" class="buttonStyle">Log Out</a>
+    </div>
+
+    <div id="header">
+        <h1>Musica</h1>
+        <% if (displaynameUpdate) { %>
+            <p class="message hidden">Display Name Updated!</p>
+        <% } %>
+
+        <% if (emailUpdate) { %>
+            <p class="message hidden">Email Updated!</p>
+        <% } %>
+
+        <% if (passwordUpdate) { %>
+            <p class="message hidden">Password Updated!</p>
+        <% } %>
+        <hr>
+        <h2>User Account Settings</h2>
+
+        <a href="/change/displayname" role="button" class="buttonStyle" style="display: inline-block">Change Display Name</a>
+        <br>
+        <% if (!googleAcc) { %>
+            <a href="/change/email" role="button" class="buttonStyle" style="display: inline-block">Change Email</a>
+            <br>
+            <a href="/change/password" role="button" class="buttonStyle" style="display: inline-block">Change Password</a>
+        <% } %>
+    </div>
+    
+    <hr style="width: 25%; border-width: 2px;">
+    <br>
+
+    <%- include("footer") %>
+</div>
