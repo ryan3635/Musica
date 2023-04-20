@@ -2,8 +2,17 @@ require('dotenv').config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
+const nodemailer = require("nodemailer");
 const Discogs = require("disconnect").Client;
 var db = new Discogs({consumerKey: process.env.DISCOGS_API_KEY, consumerSecret: process.env.DISCOGS_SECRET}).database();
+
+const emailer = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: process.env.NODEMAILER_USER,
+        pass: process.env.NODEMAILER_PASS
+    }
+});
 
 const mongoose = require("mongoose");
 const mongodb = require("mongodb").MongoClient;
@@ -125,7 +134,9 @@ app.get("/register", function (req, res) {
         const errCheck = {
             page: "Register",
             error: req.query.error,
-            duplicatePwError: req.query.duplicatePwError
+            duplicatePwError: req.query.duplicatePwError,
+            duplicateEmail: req.query.duplicateEmail,
+            duplicateDisplayname: req.query.duplicateDisplayname
         };
         res.render("register", errCheck);
     }
@@ -198,6 +209,8 @@ app.get("/change/:type", function (req, res) {
                     error: req.query.error,
                     pwError: req.query.pwError,
                     duplicatePwError: req.query.duplicatePwError,
+                    duplicateEmail: req.query.duplicateEmail,
+                    duplicateDisplayname: req.query.duplicateDisplayname,
                     buttonValue: "changeDisplayname",
                     googleAcc: false
                 }
@@ -209,6 +222,8 @@ app.get("/change/:type", function (req, res) {
                     error: req.query.error,
                     pwError: req.query.pwError,
                     duplicatePwError: req.query.duplicatePwError,
+                    duplicateEmail: req.query.duplicateEmail,
+                    duplicateDisplayname: req.query.duplicateDisplayname,
                     buttonValue: "changeDisplayname",
                     googleAcc: true
                 }
@@ -223,6 +238,8 @@ app.get("/change/:type", function (req, res) {
                     error: req.query.error,
                     pwError: req.query.pwError,
                     duplicatePwError: req.query.duplicatePwError,
+                    duplicateEmail: req.query.duplicateEmail,
+                    duplicateDisplayname: req.query.duplicateDisplayname,
                     buttonValue: "changeEmail",
                     googleAcc: false
                 }
@@ -237,6 +254,8 @@ app.get("/change/:type", function (req, res) {
                     error: req.query.error,
                     pwError: req.query.pwError,
                     duplicatePwError: req.query.duplicatePwError,
+                    duplicateEmail: req.query.duplicateEmail,
+                    duplicateDisplayname: req.query.duplicateDisplayname,
                     buttonValue: "changePassword",
                     googleAcc: false
                 }
@@ -443,19 +462,32 @@ app.post("/register", function (req, res) {
         if (req.body.passwordNew1 !== req.body.passwordNew2) {
             res.redirect("/register?duplicatePwError=true");
         }
+
         else {
-            bcrypt.genSalt(10, function (err, salt) {
-                if (err) return next(err);
-                bcrypt.hash(req.body.passwordNew2, salt, function (err, hash) {
-                    if (err) res.redirect("/register?duplicatePwError=true");
-                    const newUser = new UserLogin({
-                        username: req.body.username,
-                        password: hash,
-                        displayname: req.body.displayname
+            UserLogin.countDocuments({"username": req.body.username}, function (err, count) {
+                if (err) next(err);
+                if (count >= 1) res.redirect("/register?duplicateEmail=true");
+                else {
+                    UserLogin.countDocuments({"displayname": req.body.displayname}, function (err, count) {
+                        if (err) next(err);
+                        if (count >= 1) res.redirect("/register?duplicateDisplayname=true");
+                        else {
+                            bcrypt.genSalt(10, function (err, salt) {
+                                if (err) return next(err);
+                                bcrypt.hash(req.body.passwordNew2, salt, function (err, hash) {
+                                    if (err) res.redirect("/register?duplicatePwError=true");
+                                    const newUser = new UserLogin({
+                                        username: req.body.username,
+                                        password: hash,
+                                        displayname: req.body.displayname
+                                    });
+                                    newUser.save();
+                                    res.redirect("/login?accCreated=true");
+                                });
+                            });
+                        }
                     });
-                    newUser.save();
-                    res.redirect("/login?accCreated=true");
-                });
+                }
             });
         }
     }
@@ -465,7 +497,16 @@ app.post("/register", function (req, res) {
 app.post("/forget", function (req, res) {
     if (req.body.username === "") res.redirect("/forget?error=true")
     else {
-        //send email
+        const password = "temp"
+        const email = {
+            from: process.env.NODEMAILER_USER,
+            to: req.body.username,
+            subject: "Musica Password Recovery",
+            text: "Here is your password: " + password
+        };
+        emailer.sendMail(email, function (err, info) {
+            if (err) console.log(err);
+        })
         res.redirect("/forget?entered=true")
     }
 });
@@ -478,31 +519,43 @@ app.post("/change/:type", function (req, res) {
             if (req.user.googleId === undefined) {
                 if (req.body.displayname === "" || req.body.password === "") res.redirect("/change/displayname?error=true");
                 else {
-                    UserLogin.findOne({"_id": req.user._id}, function (err, user) {
-                        if (err) return next(err);
-                        bcrypt.compare(req.body.password, user.password, function (err, result) {
-                            if (err) res.redirect("/change/displayname?pwError=true");
-                            if (result === false) res.redirect("/change/displayname?pwError=true");
-                            else {
-                                if (req.body.displayname === "") res.redirect("/change/displayname?error=true");
-                                UserLogin.updateOne({"_id": req.user._id}, {$set: {displayname: req.body.displayname}}, function (err, result) {
-                                    if (err) return next(err);
+                    UserLogin.countDocuments({"displayname": req.body.displayname}, function (err, count) {
+                        if (err) next(err);
+                        if (count >= 1) res.redirect("/change/displayname?duplicateDisplayname=true");
+                        else {
+                            UserLogin.findOne({"_id": req.user._id}, function (err, user) {
+                                if (err) return next(err);
+                                bcrypt.compare(req.body.password, user.password, function (err, result) {
+                                    if (err) res.redirect("/change/displayname?pwError=true");
+                                    if (result === false) res.redirect("/change/displayname?pwError=true");
                                     else {
-                                        res.redirect("/account?displaynameUpdate=true");
+                                        if (req.body.displayname === "") res.redirect("/change/displayname?error=true");
+                                        UserLogin.updateOne({"_id": req.user._id}, {$set: {displayname: req.body.displayname}}, function (err, result) {
+                                            if (err) return next(err);
+                                            else {
+                                                res.redirect("/account?displaynameUpdate=true");
+                                            }
+                                        });
                                     }
                                 });
-                            }
-                        });
+                            });
+                        }
                     });
                 }
             }
             else {
                 if (req.body.displayname === "") res.redirect("/change/displayname?error=true");
                 else {
-                    UserLogin.updateOne({"_id": req.user._id}, {$set: {displayname: req.body.displayname}}, function (err, result) {
-                        if (err) return next(err);
+                    UserLogin.countDocuments({"displayname": req.body.displayname}, function (err, count) {
+                        if (err) next(err);
+                        if (count >= 1) res.redirect("/change/displayname?duplicateDisplayname=true");
                         else {
-                            res.redirect("/userHome?googleDisplayname=true");
+                            UserLogin.updateOne({"_id": req.user._id}, {$set: {displayname: req.body.displayname}}, function (err, result) {
+                                if (err) return next(err);
+                                else {
+                                    res.redirect("/userHome?googleDisplayname=true");
+                                }
+                            });
                         }
                     });
                 }
@@ -513,20 +566,26 @@ app.post("/change/:type", function (req, res) {
             if (req.user.googleId !== undefined) res.redirect("/account");
             if (req.body.email === "" || req.body.password === "") res.redirect("/change/email?error=true");
             else {
-                UserLogin.findOne({"_id": req.user._id}, function (err, user) {
-                    if (err) return next(err);
-                    bcrypt.compare(req.body.password, user.password, function (err, result) {
-                        if (err) res.redirect("/change/email?pwError=true");
-                        if (result === false) res.redirect("/change/email?pwError=true");
-                        else {
-                            UserLogin.updateOne({"_id": req.user._id}, {$set: {username: req.body.email}}, function (err, result) {
-                                if (err) return next(err);
+                UserLogin.countDocuments({"username": req.body.email}, function (err, count) {
+                    if (err) next(err);
+                    if (count >= 1) res.redirect("/change/email?duplicateEmail=true");
+                    else {
+                        UserLogin.findOne({"_id": req.user._id}, function (err, user) {
+                            if (err) return next(err);
+                            bcrypt.compare(req.body.password, user.password, function (err, result) {
+                                if (err) res.redirect("/change/email?pwError=true");
+                                if (result === false) res.redirect("/change/email?pwError=true");
                                 else {
-                                    res.redirect("/account?emailUpdate=true");
+                                    UserLogin.updateOne({"_id": req.user._id}, {$set: {username: req.body.email}}, function (err, result) {
+                                        if (err) return next(err);
+                                        else {
+                                            res.redirect("/account?emailUpdate=true");
+                                        }
+                                    });
                                 }
                             });
-                        }
-                    });
+                        });
+                    }
                 });
             }
         }

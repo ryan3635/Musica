@@ -8,11 +8,19 @@
     <div id="header">
         <h1>Musica</h1>
         <% if (error) { %>
-            <p class="message hidden">One or more fields were not entered!</p>
+            <p class="message hidden">One or More Fields Were Not Entered!</p>
         <% } %>
 
         <% if (duplicatePwError) { %>
             <p class="message hidden">Re-Entered Password Didn't Match!</p>
+        <% } %>
+
+        <% if (duplicateEmail) { %>
+            <p class="message hidden">Email Address Already Used!</p>
+        <% } %>
+
+        <% if (duplicateDisplayname) { %>
+            <p class="message hidden">Display Name Already Used!</p>
         <% } %>
         <hr>
         

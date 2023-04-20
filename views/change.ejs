@@ -17,6 +17,14 @@
         <% if (duplicatePwError) { %>
             <p class="message hidden">Re-Entered Password Didn't Match!</p>
         <% } %>
+        
+        <% if (duplicateEmail) { %>
+            <p class="message hidden">Email Address Already Used!</p>
+        <% } %>
+
+        <% if (duplicateDisplayname) { %>
+            <p class="message hidden">Display Name Already Used!</p>
+        <% } %>
         <hr>
         <h2>User Account Settings</h2>
 
