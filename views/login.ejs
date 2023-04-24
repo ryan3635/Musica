@@ -13,6 +13,10 @@
         <% if (error) { %>
             <p class="message hidden">Incorrect Email or Password!</p>
         <% } %>
+
+        <% if (pwReset) { %>
+            <p class="message hidden">Password Reset! Please Login</p>
+        <% } %>
         <hr>
 
         <form action="/login" method="POST">
@@ -27,7 +31,7 @@
     
         <a href="/auth/google" role="button" class="buttonStyle" style="display: inline-block; text-align: center">Sign In With Google</a>
         <br>
-        <a href="/forget" role="button" class="buttonStyle" style="display: inline-block; text-align: center">Forgot Display Name/Password?</a>
+        <a href="/forget" role="button" class="buttonStyle" style="display: inline-block; text-align: center">Forgot Password?</a>
     </div>
 
     <%- include("footer") %>

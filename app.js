@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
+const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const Discogs = require("disconnect").Client;
 var db = new Discogs({consumerKey: process.env.DISCOGS_API_KEY, consumerSecret: process.env.DISCOGS_SECRET}).database();
@@ -56,6 +57,9 @@ const userLoginSchema = new mongoose.Schema({
     password: String,
     displayname: String,
     googleId: String,
+    token: String,
+    tokenExpire: Date,
+    awaitingReset: Boolean
 });
 
 userLoginSchema.plugin(passportLocalMongoose);
@@ -120,7 +124,8 @@ app.get("/login", function (req, res) {
         const errCheck = {
             page: "Login",
             error: req.query.error,
-            accCreated: req.query.accCreated
+            accCreated: req.query.accCreated,
+            pwReset: req.query.pwReset
         };
         res.render("login", errCheck);
     }
@@ -191,9 +196,35 @@ app.get("/forget", function (req, res) {
         const message = {
             page: "Forget",
             entered: req.query.entered,
-            error: req.query.error
+            error: req.query.error,
+            noEmail: req.query.noEmail,
+            tokenExpired: req.query.tokenExpired
         }
         res.render("forget", message);
+    }
+    else res.redirect("/loggedIn");
+});
+
+
+app.get("/passwordReset", function (req, res) {
+    if (!req.isAuthenticated()) {
+        UserLogin.findOne({"_id": req.query.userID}, {"_id": 0, "token": 1}, function (err, result) {
+            if (err) console.log(err);
+            else {
+                if (!result) res.redirect("/forget?tokenExpired=true");
+                else {
+                    if (result.token === req.query.token) {
+                        const reset = {
+                            error: req.query.error,
+                            duplicatePwError: req.query.duplicatePwError,
+                            userID: req.query.userID,
+                            token: req.query.token
+                        }
+                        res.render("passwordReset", reset);
+                    } else res.redirect("/forget?tokenExpired=true");
+                }
+            }
+        });
     }
     else res.redirect("/loggedIn");
 });
@@ -497,18 +528,79 @@ app.post("/register", function (req, res) {
 app.post("/forget", function (req, res) {
     if (req.body.username === "") res.redirect("/forget?error=true")
     else {
-        const password = "temp"
-        const email = {
-            from: process.env.NODEMAILER_USER,
-            to: req.body.username,
-            subject: "Musica Password Recovery",
-            text: "Here is your password: " + password
-        };
-        emailer.sendMail(email, function (err, info) {
+        UserLogin.countDocuments({username: req.body.username}, function (err, count) {
             if (err) console.log(err);
-        })
-        res.redirect("/forget?entered=true")
+            else if (count < 1) res.redirect("/forget?noEmail=true");
+            else {
+                UserLogin.findOne({username: req.body.username}, {_id: 1}, function (err, id) {
+                    if (err) console.log(err);
+                    else {
+                        var token = "";
+                        crypto.randomBytes(20, function (err, bytes) {
+                            if (err) console.log(err);
+                            else {
+                                token = bytes.toString('hex');
+                                const expireTime = Date.now() + 600000;
+
+                                UserLogin.updateOne({"_id": id}, {"token": token, "tokenExpire": expireTime, "awaitingReset": true}, function (err, result) {
+                                    if (err) console.log(err);
+                                });
+
+                                const email = {
+                                    from: process.env.NODEMAILER_USER,
+                                    to: req.body.username,
+                                    subject: "Musica Password Recovery",
+                                    //update this html field when posted online
+                                    html: "<h2>Password Reset</h2><p>Click the link below to reset your Musica user password. If you did not request this, please ingore this email.</p><br><a href='http://localhost:3000/passwordReset?userID=" + id._id + "&token=" + token + "'>Musica Password Reset</a>" 
+                                };
+                                emailer.sendMail(email, function (err, info) {
+                                    if (err) console.log(err);
+                                });
+
+                                res.redirect("/forget?entered=true");
+                            }
+                        });
+                    }
+                });
+            }
+        });
     }
+});
+
+
+app.post("/passwordReset", function (req, res) {
+    if (!req.isAuthenticated()) {
+        const userID = req.query.userID;
+        const token = req.query.token;
+        if (req.body.passwordNew1 === "" || req.body.passwordNew2 === "") res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&error=true");
+        else {
+            if (req.body.passwordNew1 !== req.body.passwordNew2) res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&duplicatePwError=true");
+            else {
+                UserLogin.findOne({"_id": userID}, {token: token}, function (err, user) {
+                    if (err) console.log(err);
+                    else if (!user) res.redirect("/forget?tokenExpired=true");
+                    else {
+                        bcrypt.genSalt(10, function (err, salt) {
+                            if (err) console.log(err);
+                            else {
+                                bcrypt.hash(req.body.passwordNew2, salt, function (err, hash) {
+                                    if (err) console.log(err);
+                                    else {
+                                        UserLogin.updateOne({"_id": req.query.userID}, {$set: {password: hash}, 
+                                                                $unset: {token: 1, tokenExpire: 1, awaitingReset: 1}}, function (err, result) {
+                                            if (err) console.log(err);
+                                            else res.redirect("/login?pwReset=true");
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        }
+    }
+    else res.redirect("/loggedIn");
 });
 
 
@@ -815,4 +907,20 @@ app.post("/album/:albumId", function (req, res) {
 
 app.listen(3000, function () {
     console.log("Server started!");
+    setInterval(function() {
+        UserLogin.find({awaitingReset: true}, function (err, user) {
+            if (err) console.log(err);
+            else {
+                console.log(user);
+                for (i = 0; i < user.length; i++) {
+                    var expired = new Date(user[i].tokenExpire).getTime() <= Date.now();
+                    if (expired) {
+                        UserLogin.updateOne({"_id": user[i]._id}, {$unset: {token: 1, tokenExpire: 1, awaitingReset: 1}}, function (err, result) {
+                            if (err) console.log(err);
+                        });
+                    }
+                }
+            }
+        });
+    }, 600000);
 });

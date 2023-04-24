@@ -13,6 +13,14 @@
         <% if (error) { %>
             <p class="message hidden">Please Enter a Valid Email!</p>
         <% } %>
+
+        <% if (noEmail) { %>
+            <p class="message hidden">No User With Entered Email Exists!</p>
+        <% } %>
+
+        <% if (tokenExpired) { %>
+            <p class="message hidden">Reset Expired! Please Request Again</p>
+        <% } %>
         <hr>
 
         <h2>Forgot Password?</h2>
