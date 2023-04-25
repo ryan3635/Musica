@@ -16,6 +16,9 @@
 
     <div id="header">
         <h1>Musica</h1>
+        <% if (duplicate) { %>
+            <p class="message hidden">Album Is Already on Your List!</p>
+        <% } %>
         <hr>
         <h2 class="textOverflow"><%=title%></h2>
     </div>

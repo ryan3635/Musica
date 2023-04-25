@@ -79,11 +79,11 @@ passport.deserializeUser (function (id, done) {
 passport.use(new LocalStrategy (function (username, password, done) {
     UserLogin.findOne({username: username}, function (err, user) {
         if (err) return done(err);
-        if (!user) return done(null, false);
+        else if (!user) return done(null, false);
 
         bcrypt.compare(password, user.password, function (err, res) {
             if (err) return done(err);
-            if (res === false) return done(null, false);
+            else if (res === false) return done(null, false);
             return done(null, user);
         });
     });
@@ -118,9 +118,8 @@ app.get("/", function (req, res) {
 
 
 app.get("/login", function (req, res) {
-    if (req.isAuthenticated()) {
-        res.render("loggedIn");
-    } else {
+    if (req.isAuthenticated()) res.render("loggedIn");
+    else {
         const errCheck = {
             page: "Login",
             error: req.query.error,
@@ -150,9 +149,8 @@ app.get("/register", function (req, res) {
 
 app.get("/logout", function (req, res) {
     req.logout(function (err) {
-        if (err) {
-            console.log(err);
-        } else res.render("home", {loggedOut: true});
+        if (err) console.log(err);
+        else res.render("home", {loggedOut: true});
     });
 });
 
@@ -334,7 +332,8 @@ app.get("/userProfile", function (req, res) {
             else {
                 res.render("userProfile", {
                     albumList: results,
-                    added: req.query.added
+                    added: req.query.added,
+                    removed: req.query.removed
                 });
             }
         });
@@ -373,83 +372,103 @@ app.get("/album/:albumId", function (req, res) {
     var tracklist = new Array();
 
     db.getMaster(album, function(err, data) {
-        if (data.artists !== undefined) {
-            artistName = data.artists[0].name;
-            albumName = data.title;
-            yearRelease = data.year;
-            albumArt = data.images[0].uri;
+        if (err) console.log(err);
+        else {
+            if (data.artists !== undefined) {
+                artistName = data.artists[0].name;
+                albumName = data.title;
+                yearRelease = data.year;
+                albumArt = data.images[0].uri;
+        
+                if (data.videos !== undefined) {
+                    for (i = 0; i < data.videos.length; i++) {
+                        const artist = artistName + " - ";
+                        const artistEnd = " - " + artistName;
+                        const title = data.videos[i].title;
+                        var vidTitle = "";
     
-            if (data.videos !== undefined) {
-                for (i = 0; i < data.videos.length; i++) {
-                    const artist = artistName + " - ";
-                    const artistEnd = " - " + artistName;
-                    const title = data.videos[i].title;
-                    var vidTitle = "";
-
-                    if (title.startsWith(artist) || title.startsWith(artistName + " – ") || title.startsWith(artist.toLowerCase()) || title.startsWith(artistName.toLowerCase() + " – ")) {
-                        vidTitle = title.slice(artist.length, title.length);
-                        videoTitle.push(vidTitle);
-                        videoLink.push(data.videos[i].uri);
+                        if (title.startsWith(artist) || title.startsWith(artistName + " – ") || title.startsWith(artist.toLowerCase()) || title.startsWith(artistName.toLowerCase() + " – ")) {
+                            vidTitle = title.slice(artist.length, title.length);
+                            videoTitle.push(vidTitle);
+                            videoLink.push(data.videos[i].uri);
+                        }
+                        else if (title.endsWith(artistEnd) || title.endsWith(" – " + artistName) || title.endsWith(artistEnd.toLowerCase()) || title.endsWith(" – " + artistName.toLowerCase())) {
+                            vidTitle = title.slice(0, title.length - artistEnd.length);
+                            videoTitle.push(vidTitle);
+                            videoLink.push(data.videos[i].uri);
+                        }
+                        else {
+                            videoTitle.push(data.videos[i].title);
+                            videoLink.push(data.videos[i].uri);
+                        }
                     }
-                    else if (title.endsWith(artistEnd) || title.endsWith(" – " + artistName) || title.endsWith(artistEnd.toLowerCase()) || title.endsWith(" – " + artistName.toLowerCase())) {
-                        vidTitle = title.slice(0, title.length - artistEnd.length);
-                        videoTitle.push(vidTitle);
-                        videoLink.push(data.videos[i].uri);
+                    
+                    var videoTitleLower = new Array();
+                    var videoMapTemp = new Map();
+    
+                    for (k = 0; k < videoTitle.length; k++) {
+                        videoTitleLower.push(videoTitle[k].toLowerCase());
+                        videoMapTemp.set(videoTitleLower[k], videoLink[k]);
+                    }
+                    videoMap = new Map ([...videoMapTemp].sort((a, b) => String(a[0]).localeCompare(b[0])));
+                }
+        
+                if (data.genres !== undefined) {
+                    for (i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
+                }
+                    
+                if (data.styles !== undefined) {
+                    for (i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
+                }
+    
+                if (data.tracklist !== undefined) {
+                    var trackNumber = 0;
+                    for (i = 0; i < data.tracklist.length; i++) {
+                        if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
+                            trackNumber++;
+                            if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
+                            else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
+                        }
+                    }
+                }
+    
+                if (req.isAuthenticated()) {
+                    const addAlbum = req.body.add;
+                    if (addAlbum === "added") {
+                        const albumAdd = new userList({
+                            albumID: album,
+                            title: artistName + " - " + albumName,
+                            year: "(" + yearRelease + ")",
+                            img: albumArt,
+                            albumTracks: tracklist,
+                        });
+                        albumAdd.save();
+                        setTimeout(function () {
+                            res.redirect("/userProfile?added=true")
+                        }, 1500);
                     }
                     else {
-                        videoTitle.push(data.videos[i].title);
-                        videoLink.push(data.videos[i].uri);
+                        setTimeout(function () {
+                            res.render("album", {
+                                logged: true,
+                                albumID: album,
+                                artist: artistName,
+                                title: albumName,
+                                year: yearRelease,
+                                cover: albumArt,
+                                videoMap: videoMap,
+                                genre: genreAlbum,
+                                tracks: tracklist,
+                                duplicate: req.query.duplicate
+                            });
+                        }, 500);
                     }
                 }
                 
-                var videoTitleLower = new Array();
-                var videoMapTemp = new Map();
-
-                for (k = 0; k < videoTitle.length; k++) {
-                    videoTitleLower.push(videoTitle[k].toLowerCase());
-                    videoMapTemp.set(videoTitleLower[k], videoLink[k]);
-                }
-                videoMap = new Map ([...videoMapTemp].sort((a, b) => String(a[0]).localeCompare(b[0])));
-            }
-    
-            if (data.genres !== undefined) {
-                for (i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
-            }
-                
-            if (data.styles !== undefined) {
-                for (i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
-            }
-
-            if (data.tracklist !== undefined) {
-                var trackNumber = 0;
-                for (i = 0; i < data.tracklist.length; i++) {
-                    if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
-                        trackNumber++;
-                        if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
-                        else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
-                    }
-                }
-            }
-
-            if (req.isAuthenticated()) {
-                const addAlbum = req.body.add;
-                if (addAlbum === "added") {
-                    const albumAdd = new userList({
-                        albumID: album,
-                        title: artistName + " - " + albumName,
-                        year: "(" + yearRelease + ")",
-                        img: albumArt,
-                        albumTracks: tracklist
-                    });
-                    albumAdd.save();
-                    setTimeout(function () {
-                        res.redirect("/userProfile?added=true")
-                    }, 1500);
-                }
                 else {
                     setTimeout(function () {
                         res.render("album", {
-                            logged: true,
+                            logged: false,
                             albumID: album,
                             artist: artistName,
                             title: albumName,
@@ -457,26 +476,11 @@ app.get("/album/:albumId", function (req, res) {
                             cover: albumArt,
                             videoMap: videoMap,
                             genre: genreAlbum,
-                            tracks: tracklist
+                            tracks: tracklist,
+                            duplicate: req.query.duplicate
                         });
                     }, 500);
                 }
-            }
-            
-            else {
-                setTimeout(function () {
-                    res.render("album", {
-                        logged: false,
-                        albumID: album,
-                        artist: artistName,
-                        title: albumName,
-                        year: yearRelease,
-                        cover: albumArt,
-                        videoMap: videoMap,
-                        genre: genreAlbum,
-                        tracks: tracklist
-                    });
-                }, 500);
             }
         }
     });
@@ -496,25 +500,29 @@ app.post("/register", function (req, res) {
 
         else {
             UserLogin.countDocuments({"username": req.body.username}, function (err, count) {
-                if (err) next(err);
-                if (count >= 1) res.redirect("/register?duplicateEmail=true");
+                if (err) console.log(err);
+                else if (count >= 1) res.redirect("/register?duplicateEmail=true");
                 else {
                     UserLogin.countDocuments({"displayname": req.body.displayname}, function (err, count) {
-                        if (err) next(err);
-                        if (count >= 1) res.redirect("/register?duplicateDisplayname=true");
+                        if (err) console.log(err);
+                        else if (count >= 1) res.redirect("/register?duplicateDisplayname=true");
                         else {
                             bcrypt.genSalt(10, function (err, salt) {
-                                if (err) return next(err);
-                                bcrypt.hash(req.body.passwordNew2, salt, function (err, hash) {
-                                    if (err) res.redirect("/register?duplicatePwError=true");
-                                    const newUser = new UserLogin({
-                                        username: req.body.username,
-                                        password: hash,
-                                        displayname: req.body.displayname
+                                if (err) console.log(err);
+                                else {
+                                    bcrypt.hash(req.body.passwordNew2, salt, function (err, hash) {
+                                        if (err) res.redirect("/register?duplicatePwError=true");
+                                        else {
+                                            const newUser = new UserLogin({
+                                                username: req.body.username,
+                                                password: hash,
+                                                displayname: req.body.displayname
+                                            });
+                                            newUser.save();
+                                            res.redirect("/login?accCreated=true");
+                                        }
                                     });
-                                    newUser.save();
-                                    res.redirect("/login?accCreated=true");
-                                });
+                                }
                             });
                         }
                     });
@@ -544,20 +552,20 @@ app.post("/forget", function (req, res) {
 
                                 UserLogin.updateOne({"_id": id}, {"token": token, "tokenExpire": expireTime, "awaitingReset": true}, function (err, result) {
                                     if (err) console.log(err);
+                                    else {
+                                        const email = {
+                                            from: process.env.NODEMAILER_USER,
+                                            to: req.body.username,
+                                            subject: "Musica Password Recovery",
+                                            //update this html field when posted online
+                                            html: "<h2>Password Reset</h2><p>Click the link below to reset your Musica user password. If you did not request this, please ingore this email.</p><br><a href='http://localhost:3000/passwordReset?userID=" + id._id + "&token=" + token + "'>Musica Password Reset</a>" 
+                                        };
+                                        emailer.sendMail(email, function (err, info) {
+                                            if (err) console.log(err);
+                                        });
+                                        res.redirect("/forget?entered=true");
+                                    }
                                 });
-
-                                const email = {
-                                    from: process.env.NODEMAILER_USER,
-                                    to: req.body.username,
-                                    subject: "Musica Password Recovery",
-                                    //update this html field when posted online
-                                    html: "<h2>Password Reset</h2><p>Click the link below to reset your Musica user password. If you did not request this, please ingore this email.</p><br><a href='http://localhost:3000/passwordReset?userID=" + id._id + "&token=" + token + "'>Musica Password Reset</a>" 
-                                };
-                                emailer.sendMail(email, function (err, info) {
-                                    if (err) console.log(err);
-                                });
-
-                                res.redirect("/forget?entered=true");
                             }
                         });
                     }
@@ -612,24 +620,24 @@ app.post("/change/:type", function (req, res) {
                 if (req.body.displayname === "" || req.body.password === "") res.redirect("/change/displayname?error=true");
                 else {
                     UserLogin.countDocuments({"displayname": req.body.displayname}, function (err, count) {
-                        if (err) next(err);
-                        if (count >= 1) res.redirect("/change/displayname?duplicateDisplayname=true");
+                        if (err) console.log(err);
+                        else if (count >= 1) res.redirect("/change/displayname?duplicateDisplayname=true");
                         else {
                             UserLogin.findOne({"_id": req.user._id}, function (err, user) {
-                                if (err) return next(err);
-                                bcrypt.compare(req.body.password, user.password, function (err, result) {
-                                    if (err) res.redirect("/change/displayname?pwError=true");
-                                    if (result === false) res.redirect("/change/displayname?pwError=true");
-                                    else {
-                                        if (req.body.displayname === "") res.redirect("/change/displayname?error=true");
-                                        UserLogin.updateOne({"_id": req.user._id}, {$set: {displayname: req.body.displayname}}, function (err, result) {
-                                            if (err) return next(err);
-                                            else {
-                                                res.redirect("/account?displaynameUpdate=true");
-                                            }
-                                        });
-                                    }
-                                });
+                                if (err) console.log(err);
+                                else {
+                                    bcrypt.compare(req.body.password, user.password, function (err, result) {
+                                        if (err) res.redirect("/change/displayname?pwError=true");
+                                        else if (result === false) res.redirect("/change/displayname?pwError=true");
+                                        else {
+                                            if (req.body.displayname === "") res.redirect("/change/displayname?error=true");
+                                            UserLogin.updateOne({"_id": req.user._id}, {$set: {displayname: req.body.displayname}}, function (err, result) {
+                                                if (err) console.log(err);
+                                                else res.redirect("/account?displaynameUpdate=true");
+                                            });
+                                        }
+                                    });
+                                }
                             });
                         }
                     });
@@ -639,14 +647,12 @@ app.post("/change/:type", function (req, res) {
                 if (req.body.displayname === "") res.redirect("/change/displayname?error=true");
                 else {
                     UserLogin.countDocuments({"displayname": req.body.displayname}, function (err, count) {
-                        if (err) next(err);
-                        if (count >= 1) res.redirect("/change/displayname?duplicateDisplayname=true");
+                        if (err) console.log(err);
+                        else if (count >= 1) res.redirect("/change/displayname?duplicateDisplayname=true");
                         else {
                             UserLogin.updateOne({"_id": req.user._id}, {$set: {displayname: req.body.displayname}}, function (err, result) {
-                                if (err) return next(err);
-                                else {
-                                    res.redirect("/userHome?googleDisplayname=true");
-                                }
+                                if (err) console.log(err);
+                                else res.redirect("/userHome?googleDisplayname=true");
                             });
                         }
                     });
@@ -659,23 +665,23 @@ app.post("/change/:type", function (req, res) {
             if (req.body.email === "" || req.body.password === "") res.redirect("/change/email?error=true");
             else {
                 UserLogin.countDocuments({"username": req.body.email}, function (err, count) {
-                    if (err) next(err);
-                    if (count >= 1) res.redirect("/change/email?duplicateEmail=true");
+                    if (err) console.log(err);
+                    else if (count >= 1) res.redirect("/change/email?duplicateEmail=true");
                     else {
                         UserLogin.findOne({"_id": req.user._id}, function (err, user) {
-                            if (err) return next(err);
-                            bcrypt.compare(req.body.password, user.password, function (err, result) {
-                                if (err) res.redirect("/change/email?pwError=true");
-                                if (result === false) res.redirect("/change/email?pwError=true");
-                                else {
-                                    UserLogin.updateOne({"_id": req.user._id}, {$set: {username: req.body.email}}, function (err, result) {
-                                        if (err) return next(err);
-                                        else {
-                                            res.redirect("/account?emailUpdate=true");
-                                        }
-                                    });
-                                }
-                            });
+                            if (err) console.log(err);
+                            else {
+                                bcrypt.compare(req.body.password, user.password, function (err, result) {
+                                    if (err) res.redirect("/change/email?pwError=true");
+                                    else if (result === false) res.redirect("/change/email?pwError=true");
+                                    else {
+                                        UserLogin.updateOne({"_id": req.user._id}, {$set: {username: req.body.email}}, function (err, result) {
+                                            if (err) console.log(err);
+                                            else res.redirect("/account?emailUpdate=true");
+                                        });
+                                    }
+                                });
+                            }
                         });
                     }
                 });
@@ -687,30 +693,30 @@ app.post("/change/:type", function (req, res) {
             if (req.body.password === "" || req.body.passwordNew1 === "" || req.body.passwordNew2 === "") res.redirect("/change/password?error=true");
             else {
                 UserLogin.findOne({"_id": req.user._id}, function (err, user) {
-                    if (err) return next(err);
-                    bcrypt.compare(req.body.password, user.password, function (err, result) {
-                        if (err) res.redirect("/change/password?pwError=true");
-                        if (result === false) res.redirect("/change/password?pwError=true");
-                        else {
-                            if (req.body.passwordNew1 !== req.body.passwordNew2) {
-                                res.redirect("/change/password?duplicatePwError=true");
-                            }
+                    if (err) console.log(err);
+                    else {
+                        bcrypt.compare(req.body.password, user.password, function (err, result) {
+                            if (err) res.redirect("/change/password?pwError=true");
+                            else if (result === false) res.redirect("/change/password?pwError=true");
+                            else if (req.body.passwordNew1 !== req.body.passwordNew2) res.redirect("/change/password?duplicatePwError=true");
                             else {
                                 bcrypt.genSalt(10, function (err, salt) {
-                                    if (err) return next(err);
-                                    bcrypt.hash(req.body.passwordNew2, salt, function (err, hash) {
-                                        if (err) res.redirect("/change/password?duplicatePwError=true");
-                                        UserLogin.updateOne({"_id": req.user._id}, {$set: {password: hash}}, function (err, result) {
-                                            if (err) return next(err);
+                                    if (err) console.log(err);
+                                    else {
+                                        bcrypt.hash(req.body.passwordNew2, salt, function (err, hash) {
+                                            if (err) res.redirect("/change/password?duplicatePwError=true");
                                             else {
-                                                res.redirect("/account?passwordUpdate=true");
+                                                UserLogin.updateOne({"_id": req.user._id}, {$set: {password: hash}}, function (err, result) {
+                                                    if (err) console.log(err);
+                                                    else res.redirect("/account?passwordUpdate=true");
+                                                });
                                             }
                                         });
-                                    });
+                                    }
                                 });
                             }
-                        }
-                    });
+                        });
+                    }
                 });
             }
         }
@@ -722,7 +728,14 @@ app.post("/change/:type", function (req, res) {
 app.post("/userProfile", function (req, res) {
     if (req.isAuthenticated()) {
         const albumAdd = req.body.add;
+        const albumRemove = req.body.remove;
         if (albumAdd === "added") res.redirect("/albumSearch");
+        else if (albumRemove !== undefined) {
+            userList.deleteOne({albumID: albumRemove}, function (err, result) {
+                if (err) console.log(err);
+                else res.redirect("userProfile?removed=true");
+            });
+        }
     }
 });
 
@@ -783,123 +796,128 @@ app.post("/albumSearch", function (req, res) {
 
 app.post("/album/:albumId", function (req, res) {
     const album = req.params.albumId;
+    userList.countDocuments({albumID: album}, function (err, result) {
+        if (err) console.log(err);
+        else if (result > 0) res.redirect("/album/" + album + "?duplicate=true");
+        else {
+            var artistName = "";
+            var albumName = "";
+            var yearRelease = "";
+            var albumArt = "";
+            var videoTitle = new Array();
+            var videoLink = new Array();
+            var videoMap = new Map();
+            var genreAlbum = new Array();
+            var tracklist = new Array();
 
-    var artistName = "";
-    var albumName = "";
-    var yearRelease = "";
-    var albumArt = "";
-    var videoTitle = new Array();
-    var videoLink = new Array();
-    var videoMap = new Map();
-    var genreAlbum = new Array();
-    var tracklist = new Array();
+            db.getMaster(album, function(err, data) {
+                if (data.artists !== undefined) {
+                    artistName = data.artists[0].name;
+                    albumName = data.title;
+                    yearRelease = data.year;
+                    albumArt = data.images[0].uri;
 
-    db.getMaster(album, function(err, data) {
-        if (data.artists !== undefined) {
-            artistName = data.artists[0].name;
-            albumName = data.title;
-            yearRelease = data.year;
-            albumArt = data.images[0].uri;
+                    if (data.videos !== undefined) {
+                        for (i = 0; i < data.videos.length; i++) {
+                            const artist = artistName + " - ";
+                            const artistEnd = " - " + artistName;
+                            const title = data.videos[i].title;
+                            var vidTitle = "";
 
-            if (data.videos !== undefined) {
-                for (i = 0; i < data.videos.length; i++) {
-                    const artist = artistName + " - ";
-                    const artistEnd = " - " + artistName;
-                    const title = data.videos[i].title;
-                    var vidTitle = "";
+                            if (title.startsWith(artist) || title.startsWith(artistName + " – ") || title.startsWith(artist.toLowerCase()) || title.startsWith(artistName.toLowerCase() + " – ")) {
+                                vidTitle = title.slice(artist.length, title.length);
+                                videoTitle.push(vidTitle);
+                                videoLink.push(data.videos[i].uri);
+                            }
+                            else if (title.endsWith(artistEnd) || title.endsWith(" – " + artistName) || title.endsWith(artistEnd.toLowerCase()) || title.endsWith(" – " + artistName.toLowerCase())) {
+                                vidTitle = title.slice(0, title.length - artistEnd.length);
+                                videoTitle.push(vidTitle);
+                                videoLink.push(data.videos[i].uri);
+                            }
+                            else {
+                                videoTitle.push(data.videos[i].title);
+                                videoLink.push(data.videos[i].uri);
+                            }
+                        }
 
-                    if (title.startsWith(artist) || title.startsWith(artistName + " – ") || title.startsWith(artist.toLowerCase()) || title.startsWith(artistName.toLowerCase() + " – ")) {
-                        vidTitle = title.slice(artist.length, title.length);
-                        videoTitle.push(vidTitle);
-                        videoLink.push(data.videos[i].uri);
+                        var videoTitleLower = new Array();
+                        var videoMapTemp = new Map();
+
+                        for (k = 0; k < videoTitle.length; k++) {
+                            videoTitleLower.push(videoTitle[k].toLowerCase());
+                            videoMapTemp.set(videoTitleLower[k], videoLink[k]);
+                        }
+                        videoMap = new Map ([...videoMapTemp].sort((a, b) => String(a[0]).localeCompare(b[0])));
                     }
-                    else if (title.endsWith(artistEnd) || title.endsWith(" – " + artistName) || title.endsWith(artistEnd.toLowerCase()) || title.endsWith(" – " + artistName.toLowerCase())) {
-                        vidTitle = title.slice(0, title.length - artistEnd.length);
-                        videoTitle.push(vidTitle);
-                        videoLink.push(data.videos[i].uri);
+
+                    if (data.genres !== undefined) {
+                        for (i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
                     }
+                        
+                    if (data.styles !== undefined) {
+                        for (i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
+                    }
+
+                    if (data.tracklist !== undefined) {
+                        var trackNumber = 0;
+                        for (i = 0; i < data.tracklist.length; i++) {
+                            if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
+                                trackNumber++;
+                                if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
+                                else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
+                            }
+                        }
+                    }
+
+                    if (req.isAuthenticated()) {
+                        const addAlbum = req.body.add;
+                        if (addAlbum === "added") {
+                            const albumAdd = new userList({
+                                albumID: album,
+                                title: artistName + " - " + albumName,
+                                year: "(" + yearRelease + ")",
+                                img: albumArt,
+                                albumTracks: tracklist
+                            });
+                            albumAdd.save();
+                            setTimeout(function () {
+                                res.redirect("/userProfile?added=true")
+                            }, 1500);
+                        }
+                        else {
+                            setTimeout(function () {
+                                res.render("album", {
+                                    logged: true,
+                                    albumID: album,
+                                    artist: artistName,
+                                    title: albumName,
+                                    year: yearRelease,
+                                    cover: albumArt,
+                                    videoMap: videoMap,
+                                    genre: genreAlbum,
+                                    tracks: tracklist
+                                });
+                            }, 500);
+                        }
+                    }
+                    
                     else {
-                        videoTitle.push(data.videos[i].title);
-                        videoLink.push(data.videos[i].uri);
+                        setTimeout(function () {
+                            res.render("album", {
+                                logged: false,
+                                albumID: album,
+                                artist: artistName,
+                                title: albumName,
+                                year: yearRelease,
+                                cover: albumArt,
+                                videoMap: videoMap,
+                                genre: genreAlbum,
+                                tracks: tracklist
+                            });
+                        }, 500);
                     }
                 }
-
-                var videoTitleLower = new Array();
-                var videoMapTemp = new Map();
-
-                for (k = 0; k < videoTitle.length; k++) {
-                    videoTitleLower.push(videoTitle[k].toLowerCase());
-                    videoMapTemp.set(videoTitleLower[k], videoLink[k]);
-                }
-                videoMap = new Map ([...videoMapTemp].sort((a, b) => String(a[0]).localeCompare(b[0])));
-            }
-
-            if (data.genres !== undefined) {
-                for (i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
-            }
-                
-            if (data.styles !== undefined) {
-                for (i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
-            }
-
-            if (data.tracklist !== undefined) {
-                var trackNumber = 0;
-                for (i = 0; i < data.tracklist.length; i++) {
-                    if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
-                        trackNumber++;
-                        if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
-                        else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
-                    }
-                }
-            }
-
-            if (req.isAuthenticated()) {
-                const addAlbum = req.body.add;
-                if (addAlbum === "added") {
-                    const albumAdd = new userList({
-                        albumID: album,
-                        title: artistName + " - " + albumName,
-                        year: "(" + yearRelease + ")",
-                        img: albumArt,
-                        albumTracks: tracklist
-                    });
-                    albumAdd.save();
-                    setTimeout(function () {
-                        res.redirect("/userProfile?added=true")
-                    }, 1500);
-                }
-                else {
-                    setTimeout(function () {
-                        res.render("album", {
-                            logged: true,
-                            albumID: album,
-                            artist: artistName,
-                            title: albumName,
-                            year: yearRelease,
-                            cover: albumArt,
-                            videoMap: videoMap,
-                            genre: genreAlbum,
-                            tracks: tracklist
-                        });
-                    }, 500);
-                }
-            }
-            
-            else {
-                setTimeout(function () {
-                    res.render("album", {
-                        logged: false,
-                        albumID: album,
-                        artist: artistName,
-                        title: albumName,
-                        year: yearRelease,
-                        cover: albumArt,
-                        videoMap: videoMap,
-                        genre: genreAlbum,
-                        tracks: tracklist
-                    });
-                }, 500);
-            }
+            });
         }
     });
 });
@@ -911,7 +929,6 @@ app.listen(3000, function () {
         UserLogin.find({awaitingReset: true}, function (err, user) {
             if (err) console.log(err);
             else {
-                console.log(user);
                 for (i = 0; i < user.length; i++) {
                     var expired = new Date(user[i].tokenExpire).getTime() <= Date.now();
                     if (expired) {

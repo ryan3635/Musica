@@ -1,7 +1,9 @@
 <div id="feedFlex">
     <%- include("header") %>
     <div id="toolbar">
-        <a href="/account" class="buttonStyle">Go Back</a> &nbsp
+        <% if (!googleAcc) { %>
+            <a href="/account" class="buttonStyle">Go Back</a> &nbsp
+        <% } %>
     </div>
 
     <div id="header">

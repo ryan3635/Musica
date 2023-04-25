@@ -259,12 +259,30 @@ form input:not([type="submit"])::placeholder {
     color: #15333f;
 }
 
+.albumTitle {
+    display: inline;
+    width: 650px;
+    margin-left: 12.5%;
+    text-align: left;
+    font-size: 1.3rem;
+    font-style: italic;
+    font-weight: bold;
+    background-color: transparent;
+    border: none;
+    text-decoration: underline;
+    text-underline-offset: 40%;
+    cursor: pointer;
+    font-family: "Shadows Into Light", Arial, sans-serif;
+    color: #15333f;
+}
+    
 .imgAlbum {
     object-fit: fill;
     margin: 0 auto 0 15px;
     width: 600px;
     height: 600px;
     position: relative;
+    border: 0;
     z-index: 30;
 }
 

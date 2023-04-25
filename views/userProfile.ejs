@@ -15,6 +15,10 @@
         <% if (added) { %>
             <p class="message hidden">Album Added!</p>
         <% } %>
+
+        <% if (removed) { %>
+            <p class="message hidden">Album Removed!</p>
+        <% } %>
         <hr>
 
         <form action="/userProfile" method="post">
@@ -26,18 +30,17 @@
     <div id="albumsFlex">
         <% var position = 1; %>
         <% albumList.forEach(function (item) { %>
-            <h3><%=position%>.&nbsp <%=item.year%> <%=item.title%></h3>
-
+            <p class="albumTitle" style="text-decoration: none; cursor: default"><%=position%>.<a href="/album/<%=item.albumID%>" class="albumTitle" style="margin-left: 25px"><%=item.title%> <%=item.year%></a></p>
             <div id="albumEntry">
                 <% position++ %>
-                <img src=<%=item.img %> class=imgAlbum alt="Album cover not available">
+                <img src=<%=item.img%> class=imgAlbum alt="Album cover not available">
                 <div id="albumTracks" class="hideScrollbar1 hideScrollbar2 trackList">
                     <% item.albumTracks.forEach(function(track) { %>
                         <p><%=track%></p>
                         <br>
                     <% }); %>
-                    <form action="/album/<%=item.albumID%>" method="post">
-                        <button type="submit" class="trackListButton buttonStyle">CHOOSE FAV'S</button>
+                    <form action="/userProfile" method="post">
+                        <button type="submit" name="remove" value="<%=item.albumID%>" class="trackListButton buttonStyle">REMOVE FROM LIST</button>
                     </form>
                 </div>
                 <br><br>
