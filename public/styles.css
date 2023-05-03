@@ -105,13 +105,14 @@ form input:not([type="submit"])::placeholder {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    width: 50%;
+    width: 900px;
     z-index: 4;
     margin-left: 5%;
+
 }
 
 #albumEntry {
-    width: 300%;
+    width: 100%;
 }
 
 #albumInfo {
@@ -167,6 +168,8 @@ form input:not([type="submit"])::placeholder {
     box-shadow: 3px 3px #15333f;
     z-index: 30;
 }
+
+
 
 .hidden {
     animation: fadeOut ease;
@@ -253,7 +256,7 @@ form input:not([type="submit"])::placeholder {
 }
 
 .trackListButton {
-    display: none;
+    display: inline-block;
     font-size: 110%; 
     font-weight: bold;
     color: #15333f;
@@ -270,7 +273,7 @@ form input:not([type="submit"])::placeholder {
     background-color: transparent;
     border: none;
     text-decoration: underline;
-    text-underline-offset: 40%;
+    text-underline-offset: 45.5%;
     cursor: pointer;
     font-family: "Shadows Into Light", Arial, sans-serif;
     color: #15333f;
@@ -284,6 +287,30 @@ form input:not([type="submit"])::placeholder {
     position: relative;
     border: 0;
     z-index: 30;
+    transform:scale(0.9);
+
+}
+
+.reorder {
+    position: absolute;
+    display: inline-block;
+    height: 215px;
+    width: 200px;
+    margin-left: 400px;
+    padding-left: 25px;
+    text-align: left;
+    line-height: 0;
+    font-family: 'Caveat', sans-serif;
+    font-size: 110%;
+    overflow-y: auto;
+    white-space: nowrap;
+    z-index: 3;
+    background-image: linear-gradient(to bottom left, #F9F54B, #0F6292);
+    background-attachment: fixed;
+    border-top-right-radius: 10%;
+    border-bottom-right-radius: 10%;
+    box-shadow: 3px 3px #15333f;
+    z-index: 10;
 }
 
 .textOverflow {

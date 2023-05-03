@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
+var async = require("async");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const Discogs = require("disconnect").Client;
@@ -47,6 +48,7 @@ const userListSchema = new mongoose.Schema({
     title: String,
     year: String,
     img: String,
+    position: Number,
     albumTracks: [String]
 });
 
@@ -327,13 +329,26 @@ app.get("/userHome", function (req, res) {
 
 app.get("/userProfile", function (req, res) {
     if (req.isAuthenticated()) {
-        userList.find({}, function (err, results) {
+        userList.find({}, null, {sort: {position: 1}}, function (err, results) {
             if (err) console.log(err);
             else {
-                res.render("userProfile", {
-                    albumList: results,
-                    added: req.query.added,
-                    removed: req.query.removed
+                userList.countDocuments({}, function (err, count) {
+                    if (err) console.log(err);
+                    else {
+                        const listSize = count;
+                        setTimeout(function () {
+                            res.render("userProfile", {
+                                albumList: results,
+                                added: req.query.added,
+                                removed: req.query.removed,
+                                reordered: req.query.reordered,
+                                reorder: req.query.reorder,
+                                reorderError: req.query.reorderError,
+                                samePos: req.query.samePos,
+                                listSize: listSize
+                            });
+                        }, 500);
+                    }
                 });
             }
         });
@@ -729,14 +744,159 @@ app.post("/userProfile", function (req, res) {
     if (req.isAuthenticated()) {
         const albumAdd = req.body.add;
         const albumRemove = req.body.remove;
+        const reorder = req.body.reorder;
+        const reorderedAlbum = req.body.reordered;
+        const cancel = req.body.cancel;
+
+
         if (albumAdd === "added") res.redirect("/albumSearch");
+        else if (reorder === "reorder") res.redirect("userProfile?reorder=true");
+        else if (cancel === "cancel") res.redirect("userProfile");
         else if (albumRemove !== undefined) {
             userList.deleteOne({albumID: albumRemove}, function (err, result) {
                 if (err) console.log(err);
                 else res.redirect("userProfile?removed=true");
             });
         }
+        else {
+            const newPos = parseInt(req.body.newPos);
+            userList.find({albumID: reorderedAlbum}, {albumID: 1, title: 1, year: 1, img: 1, albumTracks: 1, position: 1}, function (err, id) {
+                if (err) {
+                    console.log(err);
+                    res.redirect("/userProfile");
+                }
+                else {
+                    if (id !== undefined) {
+                        const currentPos = id[0].position;
+                        const currentId = id[0].albumID;
+
+                        console.log("NEWWWW TEEESSSTTT");
+                        console.log("");
+                        console.log("current album pos:" + currentPos);
+                        console.log("new album pos:" + newPos);
+
+                        userList.countDocuments({}, function (err, count) {
+                            if (err) console.log(err);
+                            else {
+                                if (newPos <= 0 || isNaN(newPos) || newPos > count) res.redirect("/userProfile?reorder=true&reorderError=true");
+                                else if (newPos === currentPos) res.redirect("/userProfile?reorder=true&samePos=true");
+                                else {
+                                    if (newPos > currentPos) {
+                                        
+                                        // const positionArray = new Array();
+                                        // for (i = newPos - 1; i > currentPos; i--) {
+                                        //     userList.findOne({"position": i}, {albumID: 1}, function (err, duplicate) {
+                                        //         if (err) console.log(err);
+                                        //         else {
+                                        //             if (currentId !== duplicate.albumID) positionArray.push(i);
+                                        //         }
+                                        //     });
+                                        // }
+
+                                        const newPositionArray = new Array();
+                                        for (i = newPos - 1; i >= currentPos; i--) {
+                                            newPositionArray.push(i);
+                                        }
+
+                                        const oldPositionArray = new Array();
+                                        for (i = 0; i < newPositionArray.length; i++) {
+                                            oldPositionArray.push(newPositionArray[i] + 1);
+                                        }
+
+                                        console.log("initial old is: ");
+                                        console.log(oldPositionArray);
+                                        console.log("initial new is: ");
+                                        console.log(newPositionArray);
+                                        console.log("");
+
+                                        // async.eachSeries(newPositionArray, function (newPosSort, done) {
+                                        //     async.eachSeries(oldPositionArray, function (oldPos, done) {
+                                        //         console.log("old: " + oldPos);
+                                        //         console.log("new: " + newPosSort);
+                                        //         console.log("");
+                                        //         userList.updateOne({"position": oldPos}, {$set: {position: oldPos - 1}}, done, function (err) {
+                                        //             if (err) console.log(err);
+                                        //         }); 
+                                        //     }, done);
+                                        // });
+
+                                        async.eachSeries(oldPositionArray, function (oldPos, done) {
+                                            console.log("old: " + oldPos);
+                                            console.log("");
+                                            userList.updateOne({"position": oldPos}, {$set: {position: oldPos - 1}}, done, function (err, result) {
+                                                if (err) console.log(err);
+                                                else console.log(result);
+                                            }); 
+                                        });
+
+                                        const finalPos = new Array();
+                                        finalPos.push(newPos);
+                                        async.eachSeries(finalPos, function (finalPos, done) {
+                                            userList.updateOne({"albumID": currentId}, {$set: {position: finalPos}}, done, function (err, result) {
+                                                if (err) console.log(err);
+                                                else console.log(result);
+                                            }); 
+                                        });
+                                    }
+                                        
+                                    //Album moves up in list
+                                    else {
+                                        const newPositionArray = new Array();
+                                        for (i = newPos + 1; i <= currentPos; i++) {
+                                            newPositionArray.push(i);
+                                        }
+
+                                        const oldPositionArray = new Array();
+                                        for (i = 0; i < newPositionArray.length; i++) {
+                                            oldPositionArray.push(newPositionArray[i] - 1);
+                                        }
+
+                                        console.log("initial old is: ");
+                                        console.log(oldPositionArray);
+                                        console.log("initial new is: ");
+                                        console.log(newPositionArray);
+                                        console.log("");
+
+                                        async.eachSeries(oldPositionArray, function (oldPos, done) {
+                                            console.log("old: " + oldPos);
+                                            console.log("");
+                                            userList.updateOne({"position": oldPos}, {$set: {position: oldPos + 1}}, done, function (err, result) {
+                                                if (err) console.log(err);
+                                                else console.log(result);
+                                            }); 
+                                        });
+
+                                        const finalPos = new Array();
+                                        finalPos.push(newPos);
+                                        async.eachSeries(finalPos, function (finalPos, done) {
+                                            userList.updateOne({"albumID": currentId}, {$set: {position: finalPos}}, done, function (err, result) {
+                                                if (err) console.log(err);
+                                                else console.log(result);
+                                            }); 
+                                        });
+
+                                        // async.eachSeries(oldPositionArray, function (oldPos, done) {
+                                        //     async.eachSeries(newPositionArray, function (newPosSort, done) {
+                                        //         console.log("old: " + oldPos);
+                                        //         console.log("new: " + newPosSort);
+                                        //         console.log("");
+                                        //         userList.updateOne({"position": oldPos}, {$set: {position: newPosSort}}, done, function (err) {
+                                        //             if (err) console.log(err);
+                                        //         }); 
+                                        //     }, done);
+                                        // });
+                                    }
+                                    res.redirect("/userProfile?reordered=true&reorder=true");
+                                }
+                            }
+                        });
+                    }
+                    else res.redirect("/userProfile?reorder=true&reorderError=true");
+                }
+            });
+        }
     }
+    else res.redirect("/login");
 });
 
 
@@ -774,16 +934,16 @@ app.post("/albumSearch", function (req, res) {
                 if (albumID1 < albumID2) {
                     setTimeout(function () {
                         res.redirect("album/" + albumID1);
-                    }, 1250);
+                    }, 1000);
                 } else if (albumID1 > albumID2) {
                     setTimeout(function () {
                         res.redirect("album/" + albumID2);
-                    }, 1250);
+                    }, 1000);
                 } else {
                     albumID1 = searchResult.results[0].master_id;
                     setTimeout(function () {
                         res.redirect("album/" + albumID1);
-                    }, 1250);
+                    }, 1000);
                 }
             }
             else {
@@ -872,17 +1032,23 @@ app.post("/album/:albumId", function (req, res) {
                     if (req.isAuthenticated()) {
                         const addAlbum = req.body.add;
                         if (addAlbum === "added") {
-                            const albumAdd = new userList({
-                                albumID: album,
-                                title: artistName + " - " + albumName,
-                                year: "(" + yearRelease + ")",
-                                img: albumArt,
-                                albumTracks: tracklist
+                            userList.countDocuments({}, function (err, count) {
+                                if (err) console.log(err);
+                                else {
+                                    const albumAdd = new userList({
+                                        albumID: album,
+                                        title: artistName + " - " + albumName,
+                                        year: "(" + yearRelease + ")",
+                                        img: albumArt,
+                                        albumTracks: tracklist,
+                                        position: count + 1
+                                    });
+                                    albumAdd.save();
+                                    setTimeout(function () {
+                                        res.redirect("/userProfile?added=true");
+                                    }, 1000);
+                                }
                             });
-                            albumAdd.save();
-                            setTimeout(function () {
-                                res.redirect("/userProfile?added=true")
-                            }, 1500);
                         }
                         else {
                             setTimeout(function () {

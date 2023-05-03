@@ -19,32 +19,64 @@
         <% if (removed) { %>
             <p class="message hidden">Album Removed!</p>
         <% } %>
+
+        <% if (reordered) { %>
+            <p class="message hidden">List Reordered!</p>
+        <% } %>
+
+        <% if (reorderError) { %>
+            <p class="message hidden">Please Enter a Valid Reorder Number!</p>
+        <% } %>
+
+        <% if (samePos) { %>
+            <p class="message hidden">Album Is Already in That Position!</p>
+        <% } %>
         <hr>
 
-        <form action="/userProfile" method="post">
+        <form action="/userProfile" method="post" style="width: fit-content">
             <button type="submit" class="buttonStyle" class="buttonStyle" name="add" value="added" style="font-size: 2.2rem;">Add Album</button>
+        </form>
+        <form action="/userProfile?reorder=true" method="post" name="reorder" value="reorder" style="width: fit-content">
+            <button type="submit" class="buttonStyle" class="buttonStyle" name="reorder" value="reorder" style="font-size: 2.2rem;">Reorder/Remove</button>
         </form>
         <hr style="width: 25%; border-width: 2px; margin-top: -20px">
     </div>
 
     <div id="albumsFlex">
-        <% var position = 1; %>
         <% albumList.forEach(function (item) { %>
-            <p class="albumTitle" style="text-decoration: none; cursor: default"><%=position%>.<a href="/album/<%=item.albumID%>" class="albumTitle" style="margin-left: 25px"><%=item.title%> <%=item.year%></a></p>
+            <p class="albumTitle" style="text-decoration: none; cursor: default"><%=item.position%>.<a href="/album/<%=item.albumID%>" class="albumTitle" style="margin-left: 25px"><%=item.title%> <%=item.year%></a></p>
             <div id="albumEntry">
-                <% position++ %>
                 <img src=<%=item.img%> class=imgAlbum alt="Album cover not available">
                 <div id="albumTracks" class="hideScrollbar1 hideScrollbar2 trackList">
                     <% item.albumTracks.forEach(function(track) { %>
                         <p><%=track%></p>
                         <br>
                     <% }); %>
-                    <form action="/userProfile" method="post">
-                        <button type="submit" name="remove" value="<%=item.albumID%>" class="trackListButton buttonStyle">REMOVE FROM LIST</button>
-                    </form>
+                    <br>
                 </div>
+
+                <% if (reorder) { %>
+                    <div id="albumPos<%=item.position%>" class="fadeIn reorder">
+                        <p style="font-weight: bold; font-size: 110%">Reorder Album</p>
+                        <p>Total albums on list: <%=listSize%></p>
+                        <br>
+                        <form action="/userProfile" method="post" style="margin-top: 0; padding: 0">
+                            <input type="text" placeholder="New Position" name="newPos" autocomplete="off" style="width: 175px; height: 10px; padding: 20px; margin-top: 5px">
+                            <button type="submit" name="reordered" value="<%=item.albumID%>" class="trackListButton buttonStyle">Reorder Album</button>
+                        </form>
+                        
+                        <br>
+                        <form action="/userProfile" method="post" style="margin-top: 0; padding-right: 5px; padding-left: 0px">
+                            <button type="submit" name="remove" value="<%=item.albumID%>" class="trackListButton buttonStyle">Remove</button>
+                        </form>
+                        <form action="/userProfile" method="post" style="margin-top: 0; padding: 5px">
+                            <button type="submit" name="cancel" value="cancel" class="trackListButton buttonStyle">Cancel</button>
+                        </form>
+                    </div>
+                <% } %>
                 <br><br>
             </div>
+            
         <% }); %>
     </div>
 
