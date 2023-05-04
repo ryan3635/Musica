@@ -770,11 +770,6 @@ app.post("/userProfile", function (req, res) {
                         const currentPos = id[0].position;
                         const currentId = id[0].albumID;
 
-                        console.log("NEWWWW TEEESSSTTT");
-                        console.log("");
-                        console.log("current album pos:" + currentPos);
-                        console.log("new album pos:" + newPos);
-
                         userList.countDocuments({}, function (err, count) {
                             if (err) console.log(err);
                             else {
@@ -782,111 +777,38 @@ app.post("/userProfile", function (req, res) {
                                 else if (newPos === currentPos) res.redirect("/userProfile?reorder=true&samePos=true");
                                 else {
                                     if (newPos > currentPos) {
-                                        
-                                        // const positionArray = new Array();
-                                        // for (i = newPos - 1; i > currentPos; i--) {
-                                        //     userList.findOne({"position": i}, {albumID: 1}, function (err, duplicate) {
-                                        //         if (err) console.log(err);
-                                        //         else {
-                                        //             if (currentId !== duplicate.albumID) positionArray.push(i);
-                                        //         }
-                                        //     });
-                                        // }
-
-                                        const newPositionArray = new Array();
-                                        for (i = newPos - 1; i >= currentPos; i--) {
+                                        var newPositionArray = new Array();
+                                        for (i = currentPos; i <= newPos; i++) {
                                             newPositionArray.push(i);
                                         }
-
-                                        const oldPositionArray = new Array();
-                                        for (i = 0; i < newPositionArray.length; i++) {
-                                            oldPositionArray.push(newPositionArray[i] + 1);
-                                        }
-
-                                        console.log("initial old is: ");
-                                        console.log(oldPositionArray);
-                                        console.log("initial new is: ");
-                                        console.log(newPositionArray);
-                                        console.log("");
-
-                                        // async.eachSeries(newPositionArray, function (newPosSort, done) {
-                                        //     async.eachSeries(oldPositionArray, function (oldPos, done) {
-                                        //         console.log("old: " + oldPos);
-                                        //         console.log("new: " + newPosSort);
-                                        //         console.log("");
-                                        //         userList.updateOne({"position": oldPos}, {$set: {position: oldPos - 1}}, done, function (err) {
-                                        //             if (err) console.log(err);
-                                        //         }); 
-                                        //     }, done);
-                                        // });
-
-                                        async.eachSeries(oldPositionArray, function (oldPos, done) {
-                                            console.log("old: " + oldPos);
-                                            console.log("");
-                                            userList.updateOne({"position": oldPos}, {$set: {position: oldPos - 1}}, done, function (err, result) {
-                                                if (err) console.log(err);
-                                                else console.log(result);
-                                            }); 
-                                        });
-
-                                        const finalPos = new Array();
-                                        finalPos.push(newPos);
-                                        async.eachSeries(finalPos, function (finalPos, done) {
-                                            userList.updateOne({"albumID": currentId}, {$set: {position: finalPos}}, done, function (err, result) {
-                                                if (err) console.log(err);
-                                                else console.log(result);
-                                            }); 
+                                        async.eachSeries(newPositionArray, async function (pos, done) {
+                                            const shiftUp = await userList.updateOne({"position": pos}, {$set: {position: pos - 1}}, done);
+                                            if (pos === newPos) {
+                                                newPositionArray = [];
+                                                const final = await userList.updateOne({"albumID": currentId}, {$set: {position: newPos}});
+                                                return final;
+                                            }
+                                            else return shiftUp;
                                         });
                                     }
-                                        
-                                    //Album moves up in list
                                     else {
-                                        const newPositionArray = new Array();
-                                        for (i = newPos + 1; i <= currentPos; i++) {
+                                        var newPositionArray = new Array();
+                                        for (i = currentPos; i >= newPos; i--) {
                                             newPositionArray.push(i);
                                         }
-
-                                        const oldPositionArray = new Array();
-                                        for (i = 0; i < newPositionArray.length; i++) {
-                                            oldPositionArray.push(newPositionArray[i] - 1);
-                                        }
-
-                                        console.log("initial old is: ");
-                                        console.log(oldPositionArray);
-                                        console.log("initial new is: ");
-                                        console.log(newPositionArray);
-                                        console.log("");
-
-                                        async.eachSeries(oldPositionArray, function (oldPos, done) {
-                                            console.log("old: " + oldPos);
-                                            console.log("");
-                                            userList.updateOne({"position": oldPos}, {$set: {position: oldPos + 1}}, done, function (err, result) {
-                                                if (err) console.log(err);
-                                                else console.log(result);
-                                            }); 
+                                        async.eachSeries(newPositionArray, async function (pos, done) {
+                                            const shiftDown = await userList.updateOne({"position": pos}, {$set: {position: pos + 1}}, done);
+                                            if (pos === newPos) {
+                                                newPositionArray = [];
+                                                const final = await userList.updateOne({"albumID": currentId}, {$set: {position: newPos}});
+                                                return final;
+                                            }
+                                            else return shiftDown;
                                         });
-
-                                        const finalPos = new Array();
-                                        finalPos.push(newPos);
-                                        async.eachSeries(finalPos, function (finalPos, done) {
-                                            userList.updateOne({"albumID": currentId}, {$set: {position: finalPos}}, done, function (err, result) {
-                                                if (err) console.log(err);
-                                                else console.log(result);
-                                            }); 
-                                        });
-
-                                        // async.eachSeries(oldPositionArray, function (oldPos, done) {
-                                        //     async.eachSeries(newPositionArray, function (newPosSort, done) {
-                                        //         console.log("old: " + oldPos);
-                                        //         console.log("new: " + newPosSort);
-                                        //         console.log("");
-                                        //         userList.updateOne({"position": oldPos}, {$set: {position: newPosSort}}, done, function (err) {
-                                        //             if (err) console.log(err);
-                                        //         }); 
-                                        //     }, done);
-                                        // });
                                     }
-                                    res.redirect("/userProfile?reordered=true&reorder=true");
+                                    setTimeout(function () {
+                                        res.redirect("/userProfile?reordered=true&reorder=true");
+                                    }, 1250);
                                 }
                             }
                         });
