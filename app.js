@@ -379,6 +379,7 @@ app.get("/album/:albumId", function (req, res) {
     var artistName = "";
     var albumName = "";
     var yearRelease = "";
+    var year = "";
     var albumArt = "";
     var videoTitle = new Array();
     var videoLink = new Array();
@@ -395,6 +396,15 @@ app.get("/album/:albumId", function (req, res) {
                 yearRelease = data.year;
                 albumArt = data.images[0].uri;
         
+                if (data.year === 0 || undefined) {
+                    yearRelease = "";
+                    year = yearRelease;
+                }
+                else {
+                    yearRelease = "(" + data.year + ")";
+                    year = yearRelease.slice(1, yearRelease.length - 1);
+                }
+
                 if (data.videos !== undefined) {
                     for (i = 0; i < data.videos.length; i++) {
                         const artist = artistName + " - ";
@@ -453,14 +463,14 @@ app.get("/album/:albumId", function (req, res) {
                         const albumAdd = new userList({
                             albumID: album,
                             title: artistName + " - " + albumName,
-                            year: "(" + yearRelease + ")",
+                            year: yearRelease,
                             img: albumArt,
                             albumTracks: tracklist,
                         });
                         albumAdd.save();
                         setTimeout(function () {
                             res.redirect("/userProfile?added=true")
-                        }, 1500);
+                        }, 1250);
                     }
                     else {
                         setTimeout(function () {
@@ -469,7 +479,7 @@ app.get("/album/:albumId", function (req, res) {
                                 albumID: album,
                                 artist: artistName,
                                 title: albumName,
-                                year: yearRelease,
+                                year: year,
                                 cover: albumArt,
                                 videoMap: videoMap,
                                 genre: genreAlbum,
@@ -487,7 +497,7 @@ app.get("/album/:albumId", function (req, res) {
                             albumID: album,
                             artist: artistName,
                             title: albumName,
-                            year: yearRelease,
+                            year: year,
                             cover: albumArt,
                             videoMap: videoMap,
                             genre: genreAlbum,
@@ -748,19 +758,33 @@ app.post("/userProfile", function (req, res) {
         const reorderedAlbum = req.body.reordered;
         const cancel = req.body.cancel;
 
-
         if (albumAdd === "added") res.redirect("/albumSearch");
         else if (reorder === "reorder") res.redirect("userProfile?reorder=true");
         else if (cancel === "cancel") res.redirect("userProfile");
         else if (albumRemove !== undefined) {
-            userList.deleteOne({albumID: albumRemove}, function (err, result) {
+            userList.findOne({albumID: albumRemove}, {position: 1}, function (err, albumPos) {
                 if (err) console.log(err);
-                else res.redirect("userProfile?removed=true");
+                else {
+                    userList.updateMany({"position": {$gt: albumPos.position}}, {$inc: {position: -1}}, function (err, result) {
+                        if (err) console.log(err);
+                        else {
+                            userList.deleteOne({albumID: albumRemove}, function (err, result) {
+                                if (err) console.log(err);
+                                else {
+                                    setTimeout(function () {
+                                        res.redirect("userProfile?removed=true");
+                                    }, 1250);
+                                }
+                            });
+                        }
+                    });
+                }
             });
         }
+            
         else {
             const newPos = parseInt(req.body.newPos);
-            userList.find({albumID: reorderedAlbum}, {albumID: 1, title: 1, year: 1, img: 1, albumTracks: 1, position: 1}, function (err, id) {
+            userList.find({albumID: reorderedAlbum}, {albumID: 1, position: 1}, function (err, id) {
                 if (err) {
                     console.log(err);
                     res.redirect("/userProfile");
@@ -885,6 +909,7 @@ app.post("/album/:albumId", function (req, res) {
             var artistName = "";
             var albumName = "";
             var yearRelease = "";
+            var year = "";
             var albumArt = "";
             var videoTitle = new Array();
             var videoLink = new Array();
@@ -898,6 +923,15 @@ app.post("/album/:albumId", function (req, res) {
                     albumName = data.title;
                     yearRelease = data.year;
                     albumArt = data.images[0].uri;
+
+                    if (data.year === 0 || undefined) {
+                        yearRelease = "";
+                        year = yearRelease;
+                    }
+                    else {
+                        yearRelease = "(" + data.year + ")";
+                        year = yearRelease.slice(1, yearRelease.length - 1);
+                    }
 
                     if (data.videos !== undefined) {
                         for (i = 0; i < data.videos.length; i++) {
@@ -960,7 +994,7 @@ app.post("/album/:albumId", function (req, res) {
                                     const albumAdd = new userList({
                                         albumID: album,
                                         title: artistName + " - " + albumName,
-                                        year: "(" + yearRelease + ")",
+                                        year: yearRelease,
                                         img: albumArt,
                                         albumTracks: tracklist,
                                         position: count + 1
@@ -968,7 +1002,7 @@ app.post("/album/:albumId", function (req, res) {
                                     albumAdd.save();
                                     setTimeout(function () {
                                         res.redirect("/userProfile?added=true");
-                                    }, 1000);
+                                    }, 1250);
                                 }
                             });
                         }
@@ -979,7 +1013,7 @@ app.post("/album/:albumId", function (req, res) {
                                     albumID: album,
                                     artist: artistName,
                                     title: albumName,
-                                    year: yearRelease,
+                                    year: year,
                                     cover: albumArt,
                                     videoMap: videoMap,
                                     genre: genreAlbum,
@@ -996,7 +1030,7 @@ app.post("/album/:albumId", function (req, res) {
                                 albumID: album,
                                 artist: artistName,
                                 title: albumName,
-                                year: yearRelease,
+                                year: year,
                                 cover: albumArt,
                                 videoMap: videoMap,
                                 genre: genreAlbum,

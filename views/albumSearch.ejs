@@ -3,9 +3,9 @@
 
     <div id="toolbar">
         <% if (logged) { %>
-            <a href="/" class="buttonStyle">Feed</a> &nbsp
-            <a href="/userProfile" class="buttonStyle">Your Lists</a> &nbsp
-            <a href="/account" class="buttonStyle">Account</a> &nbsp
+            <a href="/" class="buttonStyle">Feed</a> &nbsp &nbsp
+            <a href="/userProfile" class="buttonStyle">Your Lists</a> &nbsp &nbsp
+            <a href="/account" class="buttonStyle">Account</a> &nbsp &nbsp
             <a href="/logout" class="buttonStyle">Log Out</a>
         <% } else { %>
             <a href="/" class="buttonStyle">Go Back</a>
@@ -25,9 +25,9 @@
             <input type="text" name="userAlbum" placeholder="Album">
             <br>
             <input type="text" name="year" placeholder="Year">
-            <button type="submit" class="buttonStyle" style="font-size: 2.2rem">Search</button>
+            <button type="submit" class="buttonStyle" style="font-size: 2rem">Search</button>
         </form>
-        <hr style="width: 25%; border-width: 2px; margin-top: -20px">
+        <hr style="width: 22%; border-width: 1.9px; margin-top: -20px">
         <h2 style="font-size: 23px">Entry in all fields increase accuracy although not required!</h2>
     </div>
     <%- include("footer") %>

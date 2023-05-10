@@ -2,10 +2,10 @@
     <%- include("header") %>
 
     <div id="toolbar">
-        <a href="/userHome" class="buttonStyle">Feed</a> &nbsp
-        <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp
-        <a href="/userProfile" class="buttonStyle">Your Lists</a> &nbsp
-        <a href="/account" class="buttonStyle">Account</a> &nbsp
+        <a href="/userHome" class="buttonStyle">Feed</a> &nbsp &nbsp
+        <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp &nbsp
+        <a href="/userProfile" class="buttonStyle">Your Lists</a> &nbsp &nbsp
+        <a href="/account" class="buttonStyle">Account</a> &nbsp &nbsp
         <a href="/logout" class="buttonStyle">Log Out</a>
     </div>
 
@@ -34,17 +34,22 @@
         <hr>
 
         <form action="/userProfile" method="post" style="width: fit-content">
-            <button type="submit" class="buttonStyle" class="buttonStyle" name="add" value="added" style="font-size: 2.2rem;">Add Album</button>
+            <button type="submit" class="buttonStyle" class="buttonStyle" name="add" value="added" style="font-size: 2rem;">Add Album</button>
         </form>
         <form action="/userProfile?reorder=true" method="post" name="reorder" value="reorder" style="width: fit-content">
-            <button type="submit" class="buttonStyle" class="buttonStyle" name="reorder" value="reorder" style="font-size: 2.2rem;">Reorder/Remove</button>
+            <button type="submit" class="buttonStyle" class="buttonStyle" name="reorder" value="reorder" style="font-size: 2rem;">Reorder/Remove</button>
         </form>
-        <hr style="width: 25%; border-width: 2px; margin-top: -20px">
+        <hr style="width: 22%; border-width: 1.9px; margin-top: -20px">
     </div>
 
     <div id="albumsFlex">
         <% albumList.forEach(function (item) { %>
-            <p class="albumTitle" style="text-decoration: none; cursor: default"><%=item.position%>.<a href="/album/<%=item.albumID%>" class="albumTitle" style="margin-left: 25px"><%=item.title%> <%=item.year%></a></p>
+            <% if (item.year === "") { %>
+                <p class="albumTitle" style="text-decoration: none"><%=item.position%>.<a href="/album/<%=item.albumID%>" class="albumTitle" style="margin-left: 25px"><%=item.title%></a></p>
+            <% } else { %>
+                <p class="albumTitle" style="text-decoration: none"><%=item.position%>.<a href="/album/<%=item.albumID%>" class="albumTitle" style="margin-left: 25px"><%=item.title%> <%=item.year%></a></p>
+            <% } %>
+
             <div id="albumEntry">
                 <img src=<%=item.img%> class=imgAlbum alt="Album cover not available">
                 <div id="albumTracks" class="hideScrollbar1 hideScrollbar2 trackList">

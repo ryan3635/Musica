@@ -3,10 +3,10 @@
 
     <div id="toolbar">
         <% if (logged) { %>
-            <a href="/" class="buttonStyle">Feed</a> &nbsp
-            <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp
-            <a href="/userProfile" class="buttonStyle">Your Lists</a> &nbsp
-            <a href="/account" class="buttonStyle">Account</a> &nbsp
+            <a href="/" class="buttonStyle">Feed</a> &nbsp &nbsp
+            <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp &nbsp
+            <a href="/userProfile" class="buttonStyle">Your Lists</a> &nbsp &nbsp
+            <a href="/account" class="buttonStyle">Account</a> &nbsp &nbsp
             <a href="/logout" class="buttonStyle">Log Out</a>
         <% } else { %>
             <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp
@@ -22,7 +22,7 @@
         <hr>
         <h2 class="textOverflow"><%=title%></h2>
     </div>
-    <hr style="width: 25%; border-width: 2px;">
+    <hr style="width: 22%; border-width: 1.9px;">
     
     <div id="albumInfo">
         <% if (logged) { %>
@@ -30,12 +30,13 @@
                 <button type="submit" class="buttonAddAlbum fadeIn" name="add" value="added">Add to List</button>
             </form>
         <% } %>
-        <img src=<%=cover%> class=imgAlbum alt="Album cover not available">
+        <img style="transform:scale(0.9);" src=<%=cover%> class=imgAlbum alt="Album cover not available">
 
         <div id="info" class="fadeIn trackListAlbum">
             <p style="font-weight: bold; font-size: 110%"><%=artist%> - <%=title%></p>
-            <p>Release Year: <%=year%></p>
-            <p>Genre(s): <%=genre%></p>
+            <p><%=year%></p>
+            <p><%=genre%></p>
+            <hr style="border-color: black; border-width: 1px; width: 300px">
             <p>- Tracklist -</p>
                     <% tracks.forEach(function(track) { %>
                         <p style="line-height: 0.85;"><%=track%></p>
