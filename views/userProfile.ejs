@@ -6,7 +6,7 @@
         <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp &nbsp
         <a href="/userProfile" class="buttonStyle">Your Lists</a> &nbsp &nbsp
         <a href="/account" class="buttonStyle">Account</a> &nbsp &nbsp
-        <a href="/logout" class="buttonStyle">Log Out</a>
+        <a href="/logout" class="buttonStyle">Log out</a>
     </div>
 
     <div id="header">
@@ -34,12 +34,12 @@
         <hr>
 
         <form action="/userProfile" method="post" style="width: fit-content">
-            <button type="submit" class="buttonStyle" class="buttonStyle" name="add" value="added" style="font-size: 2rem;">Add Album</button>
+            <button type="submit" class="buttonStyle" class="buttonStyle" name="add" value="added" style="font-size: 1.9rem;">Add Album</button>
         </form>
         <form action="/userProfile?reorder=true" method="post" name="reorder" value="reorder" style="width: fit-content">
-            <button type="submit" class="buttonStyle" class="buttonStyle" name="reorder" value="reorder" style="font-size: 2rem;">Reorder/Remove</button>
+            <button type="submit" class="buttonStyle" class="buttonStyle" name="reorder" value="reorder" style="font-size: 1.9rem;">Reorder/Remove</button>
         </form>
-        <hr style="width: 22%; border-width: 1.9px; margin-top: -20px">
+        <hr style="width: 22%; border-width: 1.9px; margin-top: -15px">
     </div>
 
     <div id="albumsFlex">
@@ -67,14 +67,14 @@
                         <br>
                         <form action="/userProfile" method="post" style="margin-top: 0; padding: 0">
                             <input type="text" placeholder="New Position" name="newPos" autocomplete="off" style="width: 175px; height: 10px; padding: 20px; margin-top: 5px">
-                            <button type="submit" name="reordered" value="<%=item.albumID%>" class="trackListButton buttonStyle">Reorder Album</button>
+                            <button type="submit" name="reordered" value="<%=item.albumID%>" style="margin-top: 10px" class="trackListButton buttonStyle">Reorder Album</button>
                         </form>
                         
                         <br>
                         <form action="/userProfile" method="post" style="margin-top: 0; padding-right: 5px; padding-left: 0px">
                             <button type="submit" name="remove" value="<%=item.albumID%>" class="trackListButton buttonStyle">Remove</button>
                         </form>
-                        <form action="/userProfile" method="post" style="margin-top: 0; padding: 5px">
+                        <form action="/userProfile" method="post" style="margin-top: 0; margin-left: 11px; padding: 5px">
                             <button type="submit" name="cancel" value="cancel" class="trackListButton buttonStyle">Cancel</button>
                         </form>
                     </div>
