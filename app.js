@@ -753,14 +753,23 @@ app.post("/change/:type", function (req, res) {
 app.post("/userProfile", function (req, res) {
     if (req.isAuthenticated()) {
         const albumAdd = req.body.add;
-        const albumRemove = req.body.remove;
         const reorder = req.body.reorder;
-        const reorderedAlbum = req.body.reordered;
+        const beginning = req.body.beginning;
+        const previous = req.body.previous;
+        const next = req.body.next;
+        const end = req.body.end;
         const cancel = req.body.cancel;
+        const albumRemove = req.body.remove;
+        const reorderedAlbum = req.body.reordered;
 
         if (albumAdd === "added") res.redirect("/albumSearch");
         else if (reorder === "reorder") res.redirect("userProfile?reorder=true");
+        else if (beginning === "beginning") res.redirect("userProfile");
+        else if (previous === "previous") res.redirect("userProfile");
+        else if (next === "next") res.redirect("userProfile");
+        else if (end === "end") res.redirect("userProfile");
         else if (cancel === "cancel") res.redirect("userProfile");
+        
         else if (albumRemove !== undefined) {
             userList.findOne({albumID: albumRemove}, {position: 1}, function (err, albumPos) {
                 if (err) console.log(err);

@@ -40,6 +40,21 @@
             <button type="submit" class="buttonStyle" class="buttonStyle" name="reorder" value="reorder" style="font-size: 1.9rem;">Reorder/Remove</button>
         </form>
         <hr style="width: 22%; border-width: 1.9px; margin-top: -15px">
+
+        <% if (listSize > 20) { %>
+            <form action="/userProfile" method="post" style="width: fit-content">
+                <button type="submit" class="buttonStyle" name="beginning" value="beginning" style="font-size: 1.2rem; margin-top: -23px;">Beginning</button>
+            </form>
+            <form action="/userProfile" method="post" style="width: fit-content">
+                <button type="submit" class="buttonStyle" name="previous" value="previous" style="font-size: 1.2rem; margin-top: -23px;">Previous Page</button>
+            </form>
+            <form action="/userProfile" method="post" style="width: fit-content">
+                <button type="submit" class="buttonStyle" name="next" value="next" style="font-size: 1.2rem; margin-top: -23px;">Next Page</button>
+            </form>
+            <form action="/userProfile" method="post" style="width: fit-content">
+                <button type="submit" class="buttonStyle" name="end" value="end" style="font-size: 1.2rem; margin-top: -23px;">End</button>
+            </form>
+        <% } %>
     </div>
 
     <div id="albumsFlex">
@@ -81,8 +96,29 @@
                 <% } %>
                 <br><br>
             </div>
-            
         <% }); %>
+    </div>
+
+    <div id="header">
+        <br>
+        <% if (listSize > 4) { %>
+            <a href="#" class="buttonStyle" style="font-size: 1.2rem; color: black;">Top</a>
+        <% } %>
+
+        <% if (listSize > 20) { %>
+            <form action="/userProfile" method="post" style="width: fit-content">
+                <button type="submit" class="buttonStyle" name="beginning" value="beginning" style="font-size: 1.2rem; color: black;">Beginning</button>
+            </form>
+            <form action="/userProfile" method="post" style="width: fit-content">
+                <button type="submit" class="buttonStyle" name="previous" value="previous" style="font-size: 1.2rem; color: black;">Previous Page</button>
+            </form>
+            <form action="/userProfile" method="post" style="width: fit-content">
+                <button type="submit" class="buttonStyle" name="next" value="next" style="font-size: 1.2rem; color: black;">Next Page</button>
+            </form>
+            <form action="/userProfile" method="post" style="width: fit-content">
+                <button type="submit" class="buttonStyle" name="end" value="end" style="font-size: 1.2rem; color: black;">End</button>
+            </form>
+        <% } %>
     </div>
 
     <%- include("footer") %>
