@@ -329,29 +329,41 @@ app.get("/userHome", function (req, res) {
 
 app.get("/userProfile", function (req, res) {
     if (req.isAuthenticated()) {
-        userList.find({}, null, {sort: {position: 1}}, function (err, results) {
-            if (err) console.log(err);
-            else {
-                userList.countDocuments({}, function (err, count) {
-                    if (err) console.log(err);
-                    else {
-                        const listSize = count;
-                        setTimeout(function () {
-                            res.render("userProfile", {
-                                albumList: results,
-                                added: req.query.added,
-                                removed: req.query.removed,
-                                reordered: req.query.reordered,
-                                reorder: req.query.reorder,
-                                reorderError: req.query.reorderError,
-                                samePos: req.query.samePos,
-                                listSize: listSize
-                            });
-                        }, 500);
-                    }
-                });
-            }
-        });
+        const page = req.query.page;
+        if (page === undefined) res.redirect("/userProfile?page=1");
+        else {
+            const albums = ((page - 1) * 10) + 1;
+            userList.find({"position": {$gte: albums}}, null, {sort: {position: 1}}, function (err, results) {
+                if (err) console.log(err);
+                else {
+                    userList.countDocuments({}, function (err, count) {
+                        if (err) console.log(err);
+                        else {
+                            const listSize = count;
+                            const pageLimit = (Math.trunc(count/10) + 1);
+                            if ((count % 10) === 0 && count > 10 && page == pageLimit) res.redirect("/userProfile?page=" + (pageLimit - 1));
+                            else if (page > pageLimit) res.redirect("/userProfile?page=" + pageLimit);
+                            else if (page <= 0) res.redirect("/userProfile?page=1");
+                            else {
+                                setTimeout(function () {
+                                    res.render("userProfile", {
+                                        albumList: results,
+                                        added: req.query.added,
+                                        removed: req.query.removed,
+                                        reordered: req.query.reordered,
+                                        reorder: req.query.reorder,
+                                        reorderError: req.query.reorderError,
+                                        samePos: req.query.samePos,
+                                        page: req.query.page,
+                                        listSize: listSize
+                                    });
+                                }, 500);
+                            }
+                        }
+                    });
+                }
+            }).limit(10);
+        }
     } else {
         res.redirect("/login");
     }
@@ -460,17 +472,24 @@ app.get("/album/:albumId", function (req, res) {
                 if (req.isAuthenticated()) {
                     const addAlbum = req.body.add;
                     if (addAlbum === "added") {
-                        const albumAdd = new userList({
-                            albumID: album,
-                            title: artistName + " - " + albumName,
-                            year: yearRelease,
-                            img: albumArt,
-                            albumTracks: tracklist,
+                        userList.countDocuments({}, function (err, count) {
+                            if (err) console.log(err);
+                            else {
+                                const albumAdd = new userList({
+                                    albumID: album,
+                                    title: artistName + " - " + albumName,
+                                    year: yearRelease,
+                                    img: albumArt,
+                                    albumTracks: tracklist,
+                                    position: count + 1
+                                });
+                                albumAdd.save();
+                                setTimeout(function () {
+                                    const page = Math.trunc(count/10);
+                                    res.redirect("/userProfile?page=" + (page + 1) + "&added=true");
+                                }, 1250);
+                            }
                         });
-                        albumAdd.save();
-                        setTimeout(function () {
-                            res.redirect("/userProfile?added=true")
-                        }, 1250);
                     }
                     else {
                         setTimeout(function () {
@@ -752,24 +771,21 @@ app.post("/change/:type", function (req, res) {
 
 app.post("/userProfile", function (req, res) {
     if (req.isAuthenticated()) {
-        const albumAdd = req.body.add;
-        const reorder = req.body.reorder;
-        const beginning = req.body.beginning;
-        const previous = req.body.previous;
-        const next = req.body.next;
         const end = req.body.end;
-        const cancel = req.body.cancel;
         const albumRemove = req.body.remove;
         const reorderedAlbum = req.body.reordered;
-
-        if (albumAdd === "added") res.redirect("/albumSearch");
-        else if (reorder === "reorder") res.redirect("userProfile?reorder=true");
-        else if (beginning === "beginning") res.redirect("userProfile");
-        else if (previous === "previous") res.redirect("userProfile");
-        else if (next === "next") res.redirect("userProfile");
-        else if (end === "end") res.redirect("userProfile");
-        else if (cancel === "cancel") res.redirect("userProfile");
         
+        if (end === "end") {
+            userList.countDocuments({}, function (err, count) {
+                if (err) console.log(err);
+                else {
+                    const finalPage = (Math.trunc(count/10) + 1);
+                    if ((count % 10) === 0 && count > 10) res.redirect("/userProfile?page=" + (finalPage - 1));
+                    else res.redirect("/userProfile?page=" + finalPage);
+                }
+            });
+        }
+
         else if (albumRemove !== undefined) {
             userList.findOne({albumID: albumRemove}, {position: 1}, function (err, albumPos) {
                 if (err) console.log(err);
@@ -780,9 +796,17 @@ app.post("/userProfile", function (req, res) {
                             userList.deleteOne({albumID: albumRemove}, function (err, result) {
                                 if (err) console.log(err);
                                 else {
-                                    setTimeout(function () {
-                                        res.redirect("userProfile?removed=true");
-                                    }, 1250);
+                                    var page = (Math.trunc(albumPos.position/10) + 1);
+                                    if (albumPos.position % 10 === 0) page--;
+                                    userList.countDocuments({}, function (err, count) {
+                                        if (err) console.log(err);
+                                        else {
+                                            setTimeout(function () {
+                                                if ((count % 10) === 0 && count > 10) res.redirect("/userProfile?page=" + (page - 1) + "&reorder=true&removed=true");
+                                                else res.redirect("userProfile?page=" + page + "&reorder=true&removed=true");
+                                            }, 1250);
+                                        }
+                                    });
                                 }
                             });
                         }
@@ -790,15 +814,17 @@ app.post("/userProfile", function (req, res) {
                 }
             });
         }
-            
+        
         else {
             const newPos = parseInt(req.body.newPos);
             userList.find({albumID: reorderedAlbum}, {albumID: 1, position: 1}, function (err, id) {
                 if (err) {
                     console.log(err);
-                    res.redirect("/userProfile");
+                    res.redirect("/userProfile?page=1");
                 }
                 else {
+                    var page = (Math.trunc(id[0].position/10) + 1);
+                    if ((id[0].position % 10) === 0) page--;
                     if (id !== undefined) {
                         const currentPos = id[0].position;
                         const currentId = id[0].albumID;
@@ -806,8 +832,8 @@ app.post("/userProfile", function (req, res) {
                         userList.countDocuments({}, function (err, count) {
                             if (err) console.log(err);
                             else {
-                                if (newPos <= 0 || isNaN(newPos) || newPos > count) res.redirect("/userProfile?reorder=true&reorderError=true");
-                                else if (newPos === currentPos) res.redirect("/userProfile?reorder=true&samePos=true");
+                                if (newPos <= 0 || isNaN(newPos) || newPos > count) res.redirect("/userProfile?page=" + page + "&reorder=true&reorderError=true");
+                                else if (newPos === currentPos) res.redirect("/userProfile?page=" + page + "&reorder=true&samePos=true");
                                 else {
                                     if (newPos > currentPos) {
                                         var newPositionArray = new Array();
@@ -840,13 +866,15 @@ app.post("/userProfile", function (req, res) {
                                         });
                                     }
                                     setTimeout(function () {
-                                        res.redirect("/userProfile?reordered=true&reorder=true");
+                                        page = (Math.trunc(newPos/10) + 1);
+                                        if ((newPos % 10) === 0) page--;
+                                        res.redirect("/userProfile?page=" + page + "&reordered=true&reorder=true");
                                     }, 1250);
                                 }
                             }
                         });
                     }
-                    else res.redirect("/userProfile?reorder=true&reorderError=true");
+                    else res.redirect("/userProfile?page=" + page + "&reorder=true&reorderError=true");
                 }
             });
         }
@@ -1010,7 +1038,8 @@ app.post("/album/:albumId", function (req, res) {
                                     });
                                     albumAdd.save();
                                     setTimeout(function () {
-                                        res.redirect("/userProfile?added=true");
+                                        const page = Math.trunc(count/10);
+                                        res.redirect("/userProfile?page=" + (page + 1) + "&added=true");
                                     }, 1250);
                                 }
                             });

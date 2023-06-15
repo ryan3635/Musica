@@ -4,7 +4,7 @@
     <div id="toolbar">
         <a href="/userHome" class="buttonStyle">Feed</a> &nbsp &nbsp
         <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp &nbsp
-        <a href="/userProfile" class="buttonStyle">Your Lists</a> &nbsp &nbsp
+        <a href="/userProfile?page=1" class="buttonStyle">Your List</a> &nbsp &nbsp
         <a href="/account" class="buttonStyle">Account</a> &nbsp &nbsp
         <a href="/logout" class="buttonStyle">Log out</a>
     </div>
@@ -33,31 +33,27 @@
         <% } %>
         <hr>
 
-        <form action="/userProfile" method="post" style="width: fit-content">
-            <button type="submit" class="buttonStyle" class="buttonStyle" name="add" value="added" style="font-size: 1.9rem;">Add Album</button>
-        </form>
-        <form action="/userProfile?reorder=true" method="post" name="reorder" value="reorder" style="width: fit-content">
-            <button type="submit" class="buttonStyle" class="buttonStyle" name="reorder" value="reorder" style="font-size: 1.9rem;">Reorder/Remove</button>
-        </form>
-        <hr style="width: 22%; border-width: 1.9px; margin-top: -15px">
+        <p name="page" value="page" style="display: none"><%=page%></p>
 
-        <% if (listSize > 20) { %>
+        <a href="/albumSearch" class="buttonStyle" style="font-size: 1.8rem">Add Album</a> &nbsp
+        <a href="/userProfile?page=<%=page%>&reorder=true" class="buttonStyle" style="font-size: 1.8rem">Reorder/Remove</a> &nbsp
+        <hr style="width: 22%; border-width: 1.9px">
+        <% if (listSize > 10) { %>
+            <% page-- %>
+            <a href="/userProfile?page=<%=page%>" class="buttonStyle" style="font-size: 1.2rem">Back</a> &nbsp
+            <% page = page + 2 %>
+            <a href="/userProfile?page=<%=page%>" class="buttonStyle" style="font-size: 1.2rem">Forward</a> &nbsp
+
+            <p style="color: #ECE0B8; display: inline; font-weight: bold">|</p> &nbsp
+            <a href="/userProfile?page=1" class="buttonStyle" style="font-size: 1.2rem">Beginning</a>
             <form action="/userProfile" method="post" style="width: fit-content">
-                <button type="submit" class="buttonStyle" name="beginning" value="beginning" style="font-size: 1.2rem; margin-top: -23px;">Beginning</button>
-            </form>
-            <form action="/userProfile" method="post" style="width: fit-content">
-                <button type="submit" class="buttonStyle" name="previous" value="previous" style="font-size: 1.2rem; margin-top: -23px;">Previous Page</button>
-            </form>
-            <form action="/userProfile" method="post" style="width: fit-content">
-                <button type="submit" class="buttonStyle" name="next" value="next" style="font-size: 1.2rem; margin-top: -23px;">Next Page</button>
-            </form>
-            <form action="/userProfile" method="post" style="width: fit-content">
-                <button type="submit" class="buttonStyle" name="end" value="end" style="font-size: 1.2rem; margin-top: -23px;">End</button>
+                <button type="submit" class="buttonStyle" name="end" value="end" style="font-size: 1.2rem">End</button>
             </form>
         <% } %>
     </div>
 
     <div id="albumsFlex">
+        <% page-- %>
         <% albumList.forEach(function (item) { %>
             <% if (item.year === "") { %>
                 <p class="albumTitle" style="text-decoration: none"><%=item.position%>.<a href="/album/<%=item.albumID%>" class="albumTitle" style="margin-left: 25px"><%=item.title%></a></p>
@@ -89,9 +85,7 @@
                         <form action="/userProfile" method="post" style="margin-top: 0; padding-right: 5px; padding-left: 0px">
                             <button type="submit" name="remove" value="<%=item.albumID%>" class="trackListButton buttonStyle">Remove</button>
                         </form>
-                        <form action="/userProfile" method="post" style="margin-top: 0; margin-left: 11px; padding: 5px">
-                            <button type="submit" name="cancel" value="cancel" class="trackListButton buttonStyle">Cancel</button>
-                        </form>
+                        <a href="/userProfile?page=<%=page%>" class="trackListButton buttonStyle" style="margin-top: 0; margin-left: 11px; padding: 5px;">Cancel</a>
                     </div>
                 <% } %>
                 <br><br>
@@ -101,25 +95,23 @@
 
     <div id="header">
         <br>
-        <% if (listSize > 4) { %>
-            <a href="#" class="buttonStyle" style="font-size: 1.2rem; color: black;">Top</a>
+        <% if (listSize > 2) { %>
+            <a href="#" class="buttonStyle" style="font-size: 1.2rem; color: black;">Top</a> &nbsp
         <% } %>
 
-        <% if (listSize > 20) { %>
-            <form action="/userProfile" method="post" style="width: fit-content">
-                <button type="submit" class="buttonStyle" name="beginning" value="beginning" style="font-size: 1.2rem; color: black;">Beginning</button>
-            </form>
-            <form action="/userProfile" method="post" style="width: fit-content">
-                <button type="submit" class="buttonStyle" name="previous" value="previous" style="font-size: 1.2rem; color: black;">Previous Page</button>
-            </form>
-            <form action="/userProfile" method="post" style="width: fit-content">
-                <button type="submit" class="buttonStyle" name="next" value="next" style="font-size: 1.2rem; color: black;">Next Page</button>
-            </form>
+        <% if (listSize > 10) { %>
+            <p style="color: black; display: inline; font-weight: bold">|</p> &nbsp
+            <% page-- %>
+            <a href="/userProfile?page=<%=page%>" class="buttonStyle" style="font-size: 1.2rem; color: black;">Back</a> &nbsp
+            <% page = page + 2 %>
+            <a href="/userProfile?page=<%=page%>" class="buttonStyle" style="font-size: 1.2rem; color: black;">Forward</a> &nbsp
+            
+            <p style="color: black; display: inline; font-weight: bold">|</p> &nbsp
+            <a href="/userProfile?page=1" class="buttonStyle" style="font-size: 1.2rem; color: black;">Beginning</a>
             <form action="/userProfile" method="post" style="width: fit-content">
                 <button type="submit" class="buttonStyle" name="end" value="end" style="font-size: 1.2rem; color: black;">End</button>
             </form>
         <% } %>
     </div>
-
     <%- include("footer") %>
 </div>
