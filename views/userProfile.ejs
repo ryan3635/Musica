@@ -31,6 +31,10 @@
         <% if (samePos) { %>
             <p class="message hidden">Album Is Already in That Position!</p>
         <% } %>
+
+        <% if (gotoError) { %>
+            <p class="message hidden">Please Enter a Valid Page Number!</p>
+        <% } %>
         <hr>
 
         <p name="page" value="page" style="display: none"><%=page%></p>
@@ -49,11 +53,27 @@
             <form action="/userProfile" method="post" style="width: fit-content">
                 <button type="submit" class="buttonStyle" name="end" value="end" style="font-size: 1.2rem">End</button>
             </form>
+            <% page-- %>
+            <a href="/userProfile?page=<%=page%>&goto=true" class="buttonStyle" style="font-size: 1.2rem">Page</a> &nbsp
+            <% page++ %>
         <% } %>
     </div>
 
     <div id="albumsFlex">
         <% page-- %>
+
+        <% if (goto) { %>
+            <div class="fadeIn reorder" style="margin-left: 1090px; margin-top: 60px; height: 170px">
+                <p>Number of pages: <%=pages%></p>
+                <br>
+                <p>Consisting of: <%=listSize%> albums</p>
+                <form action="/userProfile" method="post" style="margin-top: 0; padding: 0">
+                    <input type="text" placeholder="Go to page" name="gotoPage" autocomplete="off" style="width: 175px; height: 10px; padding: 20px; margin-top: 5px">
+                    <button type="submit" name="goto" value="goto" style="margin-top: 10px; margin-left: 68px" class="trackListButton buttonStyle">Go</button>
+                </form>
+            </div>
+        <% } %>
+
         <% albumList.forEach(function (item) { %>
             <% if (item.year === "") { %>
                 <p class="albumTitle" style="text-decoration: none"><%=item.position%>.<a href="/album/<%=item.albumID%>" class="albumTitle" style="margin-left: 25px"><%=item.title%></a></p>

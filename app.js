@@ -355,7 +355,10 @@ app.get("/userProfile", function (req, res) {
                                         reorderError: req.query.reorderError,
                                         samePos: req.query.samePos,
                                         page: req.query.page,
-                                        listSize: listSize
+                                        goto: req.query.goto,
+                                        gotoError: req.query.gotoError,
+                                        listSize: listSize,
+                                        pages: pageLimit
                                     });
                                 }, 500);
                             }
@@ -772,6 +775,7 @@ app.post("/change/:type", function (req, res) {
 app.post("/userProfile", function (req, res) {
     if (req.isAuthenticated()) {
         const end = req.body.end;
+        const goto = req.body.goto;
         const albumRemove = req.body.remove;
         const reorderedAlbum = req.body.reordered;
         
@@ -782,6 +786,24 @@ app.post("/userProfile", function (req, res) {
                     const finalPage = (Math.trunc(count/10) + 1);
                     if ((count % 10) === 0 && count > 10) res.redirect("/userProfile?page=" + (finalPage - 1));
                     else res.redirect("/userProfile?page=" + finalPage);
+                }
+            });
+        }
+
+        else if (goto === "goto") {
+            const gotoPage = parseInt(req.body.gotoPage);
+            userList.findOne({albumID: albumRemove}, {position: 1}, function (err, albumPos) {
+                if (err) console.log(err);
+                else {
+                    userList.countDocuments({}, function (err, count) {
+                        if (err) console.log(err);
+                        else {
+                            const pageLimit = (Math.trunc(count/10) + 1);
+                            const page = (Math.trunc(albumPos/10) + 1);
+                            if (gotoPage <= 0 || isNaN(gotoPage) || gotoPage > pageLimit) res.redirect("/userProfile?page=" + page + "&goto=true&gotoError=true");
+                            else res.redirect("/userProfile?page=" + gotoPage);
+                        }
+                    });
                 }
             });
         }
