@@ -37,36 +37,34 @@
         <% } %>
         <hr>
 
-        <p name="page" value="page" style="display: none"><%=page%></p>
 
-        <a href="/albumSearch" class="buttonStyle" style="font-size: 1.8rem">Add Album</a> &nbsp
-        <a href="/userProfile?page=<%=page%>&reorder=true" class="buttonStyle" style="font-size: 1.8rem">Reorder/Remove</a> &nbsp
-        <hr style="width: 22%; border-width: 1.9px">
         <% if (listSize > 10) { %>
-            <% page-- %>
-            <a href="/userProfile?page=<%=page%>" class="buttonStyle" style="font-size: 1.2rem">Back</a> &nbsp
-            <% page = page + 2 %>
-            <a href="/userProfile?page=<%=page%>" class="buttonStyle" style="font-size: 1.2rem">Forward</a> &nbsp
-
-            <p style="color: #ECE0B8; display: inline; font-weight: bold">|</p> &nbsp
-            <a href="/userProfile?page=1" class="buttonStyle" style="font-size: 1.2rem">Beginning</a>
+            <a href="/userProfile?page=<%=page%>&goto=true" class="buttonStyle" style="font-size: 1.6rem; margin-top: -5px;">Page</a> &nbsp
+            <p style="color: #ECE0B8; display: inline; font-weight: bold; font-size: 1.6rem; margin-top: -5px;">|</p> &nbsp
+            <a href="/userProfile?page=1" class="buttonStyle" style="font-size: 1.6rem; margin-top: -5px;">Beginning</a>
             <form action="/userProfile" method="post" style="width: fit-content">
-                <button type="submit" class="buttonStyle" name="end" value="end" style="font-size: 1.2rem">End</button>
+                <button type="submit" class="buttonStyle" name="end" value="end" style="font-size: 1.6rem; margin-top: -5px;">End</button>
             </form>
+            <p style="color: #ECE0B8; display: inline; font-weight: bold; font-size: 1.6rem; margin-top: -5px;">|</p> &nbsp
             <% page-- %>
-            <a href="/userProfile?page=<%=page%>&goto=true" class="buttonStyle" style="font-size: 1.2rem">Page</a> &nbsp
-            <% page++ %>
+            <a href="/userProfile?page=<%=page%>" class="buttonStyle" style="font-size: 1.6rem; margin-top: -5px;">Back</a> &nbsp
+            <% page = page + 2 %>
+            <a href="/userProfile?page=<%=page%>" class="buttonStyle" style="font-size: 1.6rem; margin-top: -5px;">Next</a> &nbsp
         <% } %>
+
+        <hr style="width: 22%; border-width: 1.9px; margin-top: -8px;">
+        <a href="/albumSearch" class="buttonStyle" style="font-size: 1.7rem">Add Album</a> &nbsp
+        <% page-- %>
+        <a href="/userProfile?page=<%=page%>&reorder=true" class="buttonStyle" style="font-size: 1.7rem">Reorder/Remove</a> &nbsp
     </div>
 
     <div id="albumsFlex">
-        <% page-- %>
-
         <% if (goto) { %>
-            <div class="fadeIn reorder" style="margin-left: 1090px; margin-top: 60px; height: 170px">
-                <p>Number of pages: <%=pages%></p>
-                <br>
-                <p>Consisting of: <%=listSize%> albums</p>
+            <div class="fadeIn reorder" style="margin-left: 1090px; margin-top: 60px; height: 200px">
+                <p style="line-height: 5px">Number of pages: <%=pages%></p>
+                <p style="line-height: 5px">Current page: <%=page%></p>
+                <p style="line-height: 5px"><%=listSize%> albums</p>
+                <hr style="width: 173px; border-width: 1.1px; border-radius: 10%; margin-right: 45px; border-color: black">
                 <form action="/userProfile" method="post" style="margin-top: 0; padding: 0">
                     <input type="text" placeholder="Go to page" name="gotoPage" autocomplete="off" style="width: 175px; height: 10px; padding: 20px; margin-top: 5px">
                     <button type="submit" name="goto" value="goto" style="margin-top: 10px; margin-left: 68px" class="trackListButton buttonStyle">Go</button>
@@ -94,10 +92,11 @@
                 <% if (reorder) { %>
                     <div id="albumPos<%=item.position%>" class="fadeIn reorder">
                         <p style="font-weight: bold; font-size: 110%">Reorder Album</p>
-                        <p>Total albums on list: <%=listSize%></p>
+                        <p>Total albums: <%=listSize%></p>
                         <br>
                         <form action="/userProfile" method="post" style="margin-top: 0; padding: 0">
                             <input type="text" placeholder="New Position" name="newPos" autocomplete="off" style="width: 175px; height: 10px; padding: 20px; margin-top: 5px">
+                            <hr style="width: 173px; border-width: 1.1px; border-radius: 10%; border-color: black">
                             <button type="submit" name="reordered" value="<%=item.albumID%>" style="margin-top: 10px" class="trackListButton buttonStyle">Reorder Album</button>
                         </form>
                         
@@ -120,17 +119,17 @@
         <% } %>
 
         <% if (listSize > 10) { %>
-            <p style="color: black; display: inline; font-weight: bold">|</p> &nbsp
-            <% page-- %>
-            <a href="/userProfile?page=<%=page%>" class="buttonStyle" style="font-size: 1.2rem; color: black;">Back</a> &nbsp
-            <% page = page + 2 %>
-            <a href="/userProfile?page=<%=page%>" class="buttonStyle" style="font-size: 1.2rem; color: black;">Forward</a> &nbsp
-            
+            <a href="/userProfile?page=<%=page%>&goto=true" class="buttonStyle" style="font-size: 1.2rem; color: black;">Page</a> &nbsp
             <p style="color: black; display: inline; font-weight: bold">|</p> &nbsp
             <a href="/userProfile?page=1" class="buttonStyle" style="font-size: 1.2rem; color: black;">Beginning</a>
             <form action="/userProfile" method="post" style="width: fit-content">
                 <button type="submit" class="buttonStyle" name="end" value="end" style="font-size: 1.2rem; color: black;">End</button>
             </form>
+            <p style="color: black; display: inline; font-weight: bold">|</p> &nbsp
+            <% page-- %>
+            <a href="/userProfile?page=<%=page%>" class="buttonStyle" style="font-size: 1.2rem; color: black;">Back</a> &nbsp
+            <% page = page + 2 %>
+            <a href="/userProfile?page=<%=page%>" class="buttonStyle" style="font-size: 1.2rem; color: black;">Next</a> &nbsp
         <% } %>
     </div>
     <%- include("footer") %>
