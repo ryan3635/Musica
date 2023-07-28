@@ -909,52 +909,66 @@ app.post("/albumSearch", function (req, res) {
     const artistName = req.body.userArtist;
     const albumName = req.body.userAlbum;
     const albumYear = req.body.year;
+    var discogsId = req.body.discogsId;
 
-    if (artistName === "" && albumName === "" && albumYear === "") res.redirect("albumSearch?error=true");
+    if (artistName === "" && albumName === "" && albumYear === "" && discogsId === "") res.redirect("albumSearch?error=true");
 
     else {
-        db.search({artist: artistName, release_title: albumName, year: albumYear, type: "master"}).then(function (searchResult) {
-            var albumID1 = 99999999999999;
-            var albumID2 = 99999999999999;
+        if (discogsId !== "") {
+            discogsId = parseInt(discogsId);
+            db.search({master_id: discogsId}).then(function (searchResult) {
+                if (searchResult.results.length > 0) {
+                    setTimeout(function () {
+                        res.redirect("album/" + searchResult.results[0].master_id);
+                    }, 1000);
+                }
+                else res.redirect("albumSearch?error=true");
+            });
+        }
 
-            if (searchResult.results.length > 0) {
-                var i = searchResult.results.findIndex(album => album.country === "US");
-                while (i >= 0 && i < searchResult.results.length - 1) {
-                    const albumID1temp = searchResult.results[i].master_id;
-                    if (albumID1temp < albumID1 && searchResult.results[i].country === "US") {
-                        albumID1 = albumID1temp;
+        else {
+            db.search({artist: artistName, release_title: albumName, year: albumYear, type: "master"}).then(function (searchResult) {
+                var albumID1 = 99999999999999;
+                var albumID2 = 99999999999999;
+                if (searchResult.results.length > 0) {
+                    var i = searchResult.results.findIndex(album => album.country === "US");
+                    while (i >= 0 && i < searchResult.results.length - 1) {
+                        const albumID1temp = searchResult.results[i].master_id;
+                        if (albumID1temp < albumID1 && searchResult.results[i].country === "US") {
+                            albumID1 = albumID1temp;
+                        }
+                        i++;
                     }
-                    i++;
+    
+                    var j = searchResult.results.findIndex(album => album.country === "UK");
+                    while (j >= 0 && j < searchResult.results.length - 1) {
+                        const albumID2temp = searchResult.results[j].master_id;
+                        if (albumID2temp < albumID2 && searchResult.results[j].country === "UK") {
+                            albumID2 = albumID2temp;
+                        } 
+                        j++;
+                    }
+    
+                    if (albumID1 < albumID2) {
+                        setTimeout(function () {
+                            res.redirect("album/" + albumID1);
+                        }, 1000);
+                    } else if (albumID1 > albumID2) {
+                        setTimeout(function () {
+                            res.redirect("album/" + albumID2);
+                        }, 1000);
+                    } else {
+                        albumID1 = searchResult.results[0].master_id;
+                        setTimeout(function () {
+                            res.redirect("album/" + albumID1);
+                        }, 1000);
+                    }
                 }
-
-                var j = searchResult.results.findIndex(album => album.country === "UK");
-                while (j >= 0 && j < searchResult.results.length - 1) {
-                    const albumID2temp = searchResult.results[j].master_id;
-                    if (albumID2temp < albumID2 && searchResult.results[j].country === "UK") {
-                        albumID2 = albumID2temp;
-                    } 
-                    j++;
+                else {
+                    res.redirect("albumSearch?error=true");
                 }
-
-                if (albumID1 < albumID2) {
-                    setTimeout(function () {
-                        res.redirect("album/" + albumID1);
-                    }, 1000);
-                } else if (albumID1 > albumID2) {
-                    setTimeout(function () {
-                        res.redirect("album/" + albumID2);
-                    }, 1000);
-                } else {
-                    albumID1 = searchResult.results[0].master_id;
-                    setTimeout(function () {
-                        res.redirect("album/" + albumID1);
-                    }, 1000);
-                }
-            }
-            else {
-                res.redirect("albumSearch?error=true");
-            }
-        });
+            });
+        }
     }
 });
 
