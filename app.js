@@ -316,7 +316,7 @@ app.get("/userProfile", function (req, res) {
                         else {
                             const listSize = count;
                             const pageLimit = (Math.trunc(count/10) + 1);
-                            if ((count % 10) === 0 && count > 10 && page == pageLimit) res.redirect("/userProfile?page=" + (pageLimit - 1));
+                            if ((count % 10) === 0 && count >= 10 && page == pageLimit) res.redirect("/userProfile?page=" + (pageLimit - 1));
                             else if (page > pageLimit) res.redirect("/userProfile?page=" + pageLimit);
                             else if (page <= 0) res.redirect("/userProfile?page=1");
                             else {
@@ -754,6 +754,7 @@ app.post("/userProfile", function (req, res) {
         const albumRemove = req.body.remove;
         const reorderedAlbum = req.body.reordered;
         
+        //Jump to End of List
         if (end === "end") {
             Album.countDocuments({}, function (err, count) {
                 if (err) console.log(err);
@@ -765,6 +766,7 @@ app.post("/userProfile", function (req, res) {
             });
         }
 
+        //Page Select
         else if (goto === "goto") {
             const gotoPage = parseInt(req.body.gotoPage);
             Album.findOne({albumID: albumRemove}, {position: 1}, function (err, albumPos) {
@@ -783,6 +785,7 @@ app.post("/userProfile", function (req, res) {
             });
         }
 
+        //Remove Album
         else if (albumRemove !== undefined) {
             Album.findOne({albumID: albumRemove}, {position: 1}, function (err, albumPos) {
                 if (err) console.log(err);
@@ -799,7 +802,7 @@ app.post("/userProfile", function (req, res) {
                                         if (err) console.log(err);
                                         else {
                                             setTimeout(function () {
-                                                if ((count % 10) === 0 && count > 10) res.redirect("/userProfile?page=" + (page - 1) + "&reorder=true&removed=true");
+                                                if ((count % 10) === 0 && count >= 10) res.redirect("/userProfile?page=" + (page - 1) + "&reorder=true&removed=true");
                                                 else res.redirect("userProfile?page=" + page + "&reorder=true&removed=true");
                                             }, 1250);
                                         }
@@ -812,6 +815,7 @@ app.post("/userProfile", function (req, res) {
             });
         }
         
+        //Reorder Album
         else {
             const newPos = parseInt(req.body.newPos);
             Album.find({albumID: reorderedAlbum}, {albumID: 1, position: 1}, function (err, id) {

@@ -50,8 +50,11 @@
             <a href="/userProfile?page=<%=page%>" class="buttonStyle" style="font-size: 1.6rem; margin-top: -5px;">Back</a> &nbsp
             <% page = page + 2 %>
             <a href="/userProfile?page=<%=page%>" class="buttonStyle" style="font-size: 1.6rem; margin-top: -5px;">Next</a> &nbsp
+        
+        <% } else { %>
+            <% page = 2 %>
         <% } %>
-
+        
         <hr style="width: 22%; border-width: 1.9px; margin-top: -8px;">
         <a href="/albumSearch" class="buttonStyle" style="font-size: 1.7rem">Add Album</a> &nbsp
         <% page-- %>
