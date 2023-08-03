@@ -18,13 +18,11 @@ const emailer = nodemailer.createTransport({
 
 const mongoose = require("mongoose");
 const mongodb = require("mongodb").MongoClient;
-const findOrCreate = require("mongoose-findorcreate");
 const { Db } = require("mongodb");
 
 const bcrypt = require("bcrypt");
 const session = require("express-session");
 const passport = require("passport");
-const passportLocalMongoose = require("passport-local-mongoose");
 const LocalStrategy = require("passport-local").Strategy;
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 
@@ -42,44 +40,21 @@ app.use(passport.authenticate("session"));
 
 mongoose.set("strictQuery", false);
 mongoose.connect("mongodb://localhost:27017/musicaDB", {useNewUrlParser: true, useUnifiedTopology: true});  //update this when posted online
-
-const userListSchema = new mongoose.Schema({
-    albumID: Number,
-    title: String,
-    year: String,
-    img: String,
-    position: Number,
-    albumTracks: [String]
-});
-
-const userList = new mongoose.model("List", userListSchema);
-
-const userLoginSchema = new mongoose.Schema({
-    username: String,
-    password: String,
-    displayname: String,
-    googleId: String,
-    token: String,
-    tokenExpire: Date,
-    awaitingReset: Boolean
-});
-
-userLoginSchema.plugin(passportLocalMongoose);
-userLoginSchema.plugin(findOrCreate);
-const UserLogin = new mongoose.model("UserLogin", userLoginSchema);
+const User = require("./models/user");
+const Album = require("./models/album");
 
 passport.serializeUser(function (user, done) {
     done(null, user.id);
 });
 
 passport.deserializeUser (function (id, done) {
-    UserLogin.findById(id, function (err, user) {
+    User.findById(id, function (err, user) {
         done(err, user);
     });
 });
 
 passport.use(new LocalStrategy (function (username, password, done) {
-    UserLogin.findOne({username: username}, function (err, user) {
+    User.findOne({username: username}, function (err, user) {
         if (err) return done(err);
         else if (!user) return done(null, false);
 
@@ -98,7 +73,7 @@ passport.use(new GoogleStrategy({
     userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
 },
     function (accessToken, refreshToken, profile, done) {
-        UserLogin.findOrCreate({googleId: profile.id}, function (err, user) {
+        User.findOrCreate({googleId: profile.id}, function (err, user) {
             return done(err, user);
         });
     }
@@ -208,7 +183,7 @@ app.get("/forget", function (req, res) {
 
 app.get("/passwordReset", function (req, res) {
     if (!req.isAuthenticated()) {
-        UserLogin.findOne({"_id": req.query.userID}, {"_id": 0, "token": 1}, function (err, result) {
+        User.findOne({"_id": req.query.userID}, {"_id": 0, "token": 1}, function (err, result) {
             if (err) console.log(err);
             else {
                 if (!result) res.redirect("/forget?tokenExpired=true");
@@ -333,10 +308,10 @@ app.get("/userProfile", function (req, res) {
         if (page === undefined) res.redirect("/userProfile?page=1");
         else {
             const albums = ((page - 1) * 10) + 1;
-            userList.find({"position": {$gte: albums}}, null, {sort: {position: 1}}, function (err, results) {
+            Album.find({"position": {$gte: albums}}, null, {sort: {position: 1}}, function (err, results) {
                 if (err) console.log(err);
                 else {
-                    userList.countDocuments({}, function (err, count) {
+                    Album.countDocuments({}, function (err, count) {
                         if (err) console.log(err);
                         else {
                             const listSize = count;
@@ -475,10 +450,10 @@ app.get("/album/:albumId", function (req, res) {
                 if (req.isAuthenticated()) {
                     const addAlbum = req.body.add;
                     if (addAlbum === "added") {
-                        userList.countDocuments({}, function (err, count) {
+                        Album.countDocuments({}, function (err, count) {
                             if (err) console.log(err);
                             else {
-                                const albumAdd = new userList({
+                                const albumAdd = new Album({
                                     albumID: album,
                                     title: artistName + " - " + albumName,
                                     year: yearRelease,
@@ -546,11 +521,11 @@ app.post("/register", function (req, res) {
         }
 
         else {
-            UserLogin.countDocuments({"username": req.body.username}, function (err, count) {
+            User.countDocuments({"username": req.body.username}, function (err, count) {
                 if (err) console.log(err);
                 else if (count >= 1) res.redirect("/register?duplicateEmail=true");
                 else {
-                    UserLogin.countDocuments({"displayname": req.body.displayname}, function (err, count) {
+                    User.countDocuments({"displayname": req.body.displayname}, function (err, count) {
                         if (err) console.log(err);
                         else if (count >= 1) res.redirect("/register?duplicateDisplayname=true");
                         else {
@@ -560,10 +535,10 @@ app.post("/register", function (req, res) {
                                     bcrypt.hash(req.body.passwordNew2, salt, function (err, hash) {
                                         if (err) res.redirect("/register?duplicatePwError=true");
                                         else {
-                                            const newUser = new UserLogin({
+                                            const newUser = new User({
                                                 username: req.body.username,
                                                 password: hash,
-                                                displayname: req.body.displayname
+                                                displayname: req.body.displayname,
                                             });
                                             newUser.save();
                                             res.redirect("/login?accCreated=true");
@@ -583,11 +558,11 @@ app.post("/register", function (req, res) {
 app.post("/forget", function (req, res) {
     if (req.body.username === "") res.redirect("/forget?error=true")
     else {
-        UserLogin.countDocuments({username: req.body.username}, function (err, count) {
+        User.countDocuments({username: req.body.username}, function (err, count) {
             if (err) console.log(err);
             else if (count < 1) res.redirect("/forget?noEmail=true");
             else {
-                UserLogin.findOne({username: req.body.username}, {_id: 1}, function (err, id) {
+                User.findOne({username: req.body.username}, {_id: 1}, function (err, id) {
                     if (err) console.log(err);
                     else {
                         var token = "";
@@ -597,7 +572,7 @@ app.post("/forget", function (req, res) {
                                 token = bytes.toString('hex');
                                 const expireTime = Date.now() + 600000;
 
-                                UserLogin.updateOne({"_id": id}, {"token": token, "tokenExpire": expireTime, "awaitingReset": true}, function (err, result) {
+                                User.updateOne({"_id": id}, {"token": token, "tokenExpire": expireTime, "awaitingReset": true}, function (err, result) {
                                     if (err) console.log(err);
                                     else {
                                         const email = {
@@ -631,7 +606,7 @@ app.post("/passwordReset", function (req, res) {
         else {
             if (req.body.passwordNew1 !== req.body.passwordNew2) res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&duplicatePwError=true");
             else {
-                UserLogin.findOne({"_id": userID}, {token: token}, function (err, user) {
+                User.findOne({"_id": userID}, {token: token}, function (err, user) {
                     if (err) console.log(err);
                     else if (!user) res.redirect("/forget?tokenExpired=true");
                     else {
@@ -641,7 +616,7 @@ app.post("/passwordReset", function (req, res) {
                                 bcrypt.hash(req.body.passwordNew2, salt, function (err, hash) {
                                     if (err) console.log(err);
                                     else {
-                                        UserLogin.updateOne({"_id": req.query.userID}, {$set: {password: hash}, 
+                                        User.updateOne({"_id": req.query.userID}, {$set: {password: hash}, 
                                                                 $unset: {token: 1, tokenExpire: 1, awaitingReset: 1}}, function (err, result) {
                                             if (err) console.log(err);
                                             else res.redirect("/login?pwReset=true");
@@ -666,11 +641,11 @@ app.post("/change/:type", function (req, res) {
             if (req.user.googleId === undefined) {
                 if (req.body.displayname === "" || req.body.password === "") res.redirect("/change/displayname?error=true");
                 else {
-                    UserLogin.countDocuments({"displayname": req.body.displayname}, function (err, count) {
+                    User.countDocuments({"displayname": req.body.displayname}, function (err, count) {
                         if (err) console.log(err);
                         else if (count >= 1) res.redirect("/change/displayname?duplicateDisplayname=true");
                         else {
-                            UserLogin.findOne({"_id": req.user._id}, function (err, user) {
+                            User.findOne({"_id": req.user._id}, function (err, user) {
                                 if (err) console.log(err);
                                 else {
                                     bcrypt.compare(req.body.password, user.password, function (err, result) {
@@ -678,7 +653,7 @@ app.post("/change/:type", function (req, res) {
                                         else if (result === false) res.redirect("/change/displayname?pwError=true");
                                         else {
                                             if (req.body.displayname === "") res.redirect("/change/displayname?error=true");
-                                            UserLogin.updateOne({"_id": req.user._id}, {$set: {displayname: req.body.displayname}}, function (err, result) {
+                                            User.updateOne({"_id": req.user._id}, {$set: {displayname: req.body.displayname}}, function (err, result) {
                                                 if (err) console.log(err);
                                                 else res.redirect("/account?displaynameUpdate=true");
                                             });
@@ -693,11 +668,11 @@ app.post("/change/:type", function (req, res) {
             else {
                 if (req.body.displayname === "") res.redirect("/change/displayname?error=true");
                 else {
-                    UserLogin.countDocuments({"displayname": req.body.displayname}, function (err, count) {
+                    User.countDocuments({"displayname": req.body.displayname}, function (err, count) {
                         if (err) console.log(err);
                         else if (count >= 1) res.redirect("/change/displayname?duplicateDisplayname=true");
                         else {
-                            UserLogin.updateOne({"_id": req.user._id}, {$set: {displayname: req.body.displayname}}, function (err, result) {
+                            User.updateOne({"_id": req.user._id}, {$set: {displayname: req.body.displayname}}, function (err, result) {
                                 if (err) console.log(err);
                                 else res.redirect("/userHome?googleDisplayname=true");
                             });
@@ -711,18 +686,18 @@ app.post("/change/:type", function (req, res) {
             if (req.user.googleId !== undefined) res.redirect("/account");
             if (req.body.email === "" || req.body.password === "") res.redirect("/change/email?error=true");
             else {
-                UserLogin.countDocuments({"username": req.body.email}, function (err, count) {
+                User.countDocuments({"username": req.body.email}, function (err, count) {
                     if (err) console.log(err);
                     else if (count >= 1) res.redirect("/change/email?duplicateEmail=true");
                     else {
-                        UserLogin.findOne({"_id": req.user._id}, function (err, user) {
+                        User.findOne({"_id": req.user._id}, function (err, user) {
                             if (err) console.log(err);
                             else {
                                 bcrypt.compare(req.body.password, user.password, function (err, result) {
                                     if (err) res.redirect("/change/email?pwError=true");
                                     else if (result === false) res.redirect("/change/email?pwError=true");
                                     else {
-                                        UserLogin.updateOne({"_id": req.user._id}, {$set: {username: req.body.email}}, function (err, result) {
+                                        User.updateOne({"_id": req.user._id}, {$set: {username: req.body.email}}, function (err, result) {
                                             if (err) console.log(err);
                                             else res.redirect("/account?emailUpdate=true");
                                         });
@@ -739,7 +714,7 @@ app.post("/change/:type", function (req, res) {
             if (req.user.googleId !== undefined) res.redirect("/account");
             if (req.body.password === "" || req.body.passwordNew1 === "" || req.body.passwordNew2 === "") res.redirect("/change/password?error=true");
             else {
-                UserLogin.findOne({"_id": req.user._id}, function (err, user) {
+                User.findOne({"_id": req.user._id}, function (err, user) {
                     if (err) console.log(err);
                     else {
                         bcrypt.compare(req.body.password, user.password, function (err, result) {
@@ -753,7 +728,7 @@ app.post("/change/:type", function (req, res) {
                                         bcrypt.hash(req.body.passwordNew2, salt, function (err, hash) {
                                             if (err) res.redirect("/change/password?duplicatePwError=true");
                                             else {
-                                                UserLogin.updateOne({"_id": req.user._id}, {$set: {password: hash}}, function (err, result) {
+                                                User.updateOne({"_id": req.user._id}, {$set: {password: hash}}, function (err, result) {
                                                     if (err) console.log(err);
                                                     else res.redirect("/account?passwordUpdate=true");
                                                 });
@@ -780,7 +755,7 @@ app.post("/userProfile", function (req, res) {
         const reorderedAlbum = req.body.reordered;
         
         if (end === "end") {
-            userList.countDocuments({}, function (err, count) {
+            Album.countDocuments({}, function (err, count) {
                 if (err) console.log(err);
                 else {
                     const finalPage = (Math.trunc(count/10) + 1);
@@ -792,10 +767,10 @@ app.post("/userProfile", function (req, res) {
 
         else if (goto === "goto") {
             const gotoPage = parseInt(req.body.gotoPage);
-            userList.findOne({albumID: albumRemove}, {position: 1}, function (err, albumPos) {
+            Album.findOne({albumID: albumRemove}, {position: 1}, function (err, albumPos) {
                 if (err) console.log(err);
                 else {
-                    userList.countDocuments({}, function (err, count) {
+                    Album.countDocuments({}, function (err, count) {
                         if (err) console.log(err);
                         else {
                             const pageLimit = (Math.trunc(count/10) + 1);
@@ -809,18 +784,18 @@ app.post("/userProfile", function (req, res) {
         }
 
         else if (albumRemove !== undefined) {
-            userList.findOne({albumID: albumRemove}, {position: 1}, function (err, albumPos) {
+            Album.findOne({albumID: albumRemove}, {position: 1}, function (err, albumPos) {
                 if (err) console.log(err);
                 else {
-                    userList.updateMany({"position": {$gt: albumPos.position}}, {$inc: {position: -1}}, function (err, result) {
+                    Album.updateMany({"position": {$gt: albumPos.position}}, {$inc: {position: -1}}, function (err, result) {
                         if (err) console.log(err);
                         else {
-                            userList.deleteOne({albumID: albumRemove}, function (err, result) {
+                            Album.deleteOne({albumID: albumRemove}, function (err, result) {
                                 if (err) console.log(err);
                                 else {
                                     var page = (Math.trunc(albumPos.position/10) + 1);
                                     if (albumPos.position % 10 === 0) page--;
-                                    userList.countDocuments({}, function (err, count) {
+                                    Album.countDocuments({}, function (err, count) {
                                         if (err) console.log(err);
                                         else {
                                             setTimeout(function () {
@@ -839,7 +814,7 @@ app.post("/userProfile", function (req, res) {
         
         else {
             const newPos = parseInt(req.body.newPos);
-            userList.find({albumID: reorderedAlbum}, {albumID: 1, position: 1}, function (err, id) {
+            Album.find({albumID: reorderedAlbum}, {albumID: 1, position: 1}, function (err, id) {
                 if (err) {
                     console.log(err);
                     res.redirect("/userProfile?page=1");
@@ -851,7 +826,7 @@ app.post("/userProfile", function (req, res) {
                         const currentPos = id[0].position;
                         const currentId = id[0].albumID;
 
-                        userList.countDocuments({}, function (err, count) {
+                        Album.countDocuments({}, function (err, count) {
                             if (err) console.log(err);
                             else {
                                 if (newPos <= 0 || isNaN(newPos) || newPos > count) res.redirect("/userProfile?page=" + page + "&reorder=true&reorderError=true");
@@ -863,10 +838,10 @@ app.post("/userProfile", function (req, res) {
                                             newPositionArray.push(i);
                                         }
                                         async.eachSeries(newPositionArray, async function (pos, done) {
-                                            const shiftUp = await userList.updateOne({"position": pos}, {$set: {position: pos - 1}}, done);
+                                            const shiftUp = await Album.updateOne({"position": pos}, {$set: {position: pos - 1}}, done);
                                             if (pos === newPos) {
                                                 newPositionArray = [];
-                                                const final = await userList.updateOne({"albumID": currentId}, {$set: {position: newPos}});
+                                                const final = await Album.updateOne({"albumID": currentId}, {$set: {position: newPos}});
                                                 return final;
                                             }
                                             else return shiftUp;
@@ -878,10 +853,10 @@ app.post("/userProfile", function (req, res) {
                                             newPositionArray.push(i);
                                         }
                                         async.eachSeries(newPositionArray, async function (pos, done) {
-                                            const shiftDown = await userList.updateOne({"position": pos}, {$set: {position: pos + 1}}, done);
+                                            const shiftDown = await Album.updateOne({"position": pos}, {$set: {position: pos + 1}}, done);
                                             if (pos === newPos) {
                                                 newPositionArray = [];
-                                                const final = await userList.updateOne({"albumID": currentId}, {$set: {position: newPos}});
+                                                const final = await Album.updateOne({"albumID": currentId}, {$set: {position: newPos}});
                                                 return final;
                                             }
                                             else return shiftDown;
@@ -975,7 +950,7 @@ app.post("/albumSearch", function (req, res) {
 
 app.post("/album/:albumId", function (req, res) {
     const album = req.params.albumId;
-    userList.countDocuments({albumID: album}, function (err, result) {
+    Album.countDocuments({albumID: album}, function (err, result) {
         if (err) console.log(err);
         else if (result > 0) res.redirect("/album/" + album + "?duplicate=true");
         else {
@@ -1061,10 +1036,10 @@ app.post("/album/:albumId", function (req, res) {
                     if (req.isAuthenticated()) {
                         const addAlbum = req.body.add;
                         if (addAlbum === "added") {
-                            userList.countDocuments({}, function (err, count) {
+                            Album.countDocuments({}, function (err, count) {
                                 if (err) console.log(err);
                                 else {
-                                    const albumAdd = new userList({
+                                    const albumAdd = new Album({
                                         albumID: album,
                                         title: artistName + " - " + albumName,
                                         year: yearRelease,
@@ -1122,13 +1097,13 @@ app.post("/album/:albumId", function (req, res) {
 app.listen(3000, function () {
     console.log("Server started!");
     setInterval(function() {
-        UserLogin.find({awaitingReset: true}, function (err, user) {
+        User.find({awaitingReset: true}, function (err, user) {
             if (err) console.log(err);
             else {
                 for (i = 0; i < user.length; i++) {
                     var expired = new Date(user[i].tokenExpire).getTime() <= Date.now();
                     if (expired) {
-                        UserLogin.updateOne({"_id": user[i]._id}, {$unset: {token: 1, tokenExpire: 1, awaitingReset: 1}}, function (err, result) {
+                        User.updateOne({"_id": user[i]._id}, {$unset: {token: 1, tokenExpire: 1, awaitingReset: 1}}, function (err, result) {
                             if (err) console.log(err);
                         });
                     }
