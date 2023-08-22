@@ -351,11 +351,13 @@ app.get("/userProfile", function (req, res) {
 app.get("/albumSearch", function (req, res) {
     if (req.isAuthenticated()) {
         res.render("albumSearch", {
+            notFound: req.query.notFound,
             error: req.query.error,
             logged: true
         });
     } else {
         res.render("albumSearch", {
+            notFound: req.query.notFound,
             error: req.query.error,
             logged: false
         });
@@ -894,17 +896,22 @@ app.post("/albumSearch", function (req, res) {
 
     else {
         if (discogsId !== "") {
-            discogsId = parseInt(discogsId);
-            db.search({master_id: discogsId}).then(function (searchResult) {
-                if (searchResult.results.length > 0) {
-                    setTimeout(function () {
-                        res.redirect("album/" + searchResult.results[0].master_id);
-                    }, 1000);
-                }
-                else res.redirect("albumSearch?error=true");
-            });
+            if (discogsId.charAt(0) !== "0" && discogsId.charAt(0) !== "1" && discogsId.charAt(0) !== "2" && discogsId.charAt(0) !== "3" && discogsId.charAt(0) !== "4" &&
+                discogsId.charAt(0) !== "5" && discogsId.charAt(0) !== "6" && discogsId.charAt(0) !== "7" && discogsId.charAt(0) !== "8" && discogsId.charAt(0) !== "9")
+                res.redirect("albumSearch?error=true");
+            else {
+                discogsId = parseInt(discogsId);
+                db.search({master_id: discogsId}).then(function (searchResult) {
+                    if (searchResult.results.length > 0) {
+                        setTimeout(function () {
+                            res.redirect("album/" + searchResult.results[0].master_id);
+                        }, 1000);
+                    }
+                    else res.redirect("albumSearch?notFound=true");
+                });
+            }
         }
-
+    
         else {
             db.search({artist: artistName, release_title: albumName, year: albumYear, type: "master"}).then(function (searchResult) {
                 var albumID1 = 99999999999999;
@@ -944,7 +951,7 @@ app.post("/albumSearch", function (req, res) {
                     }
                 }
                 else {
-                    res.redirect("albumSearch?error=true");
+                    res.redirect("albumSearch?notFound=true");
                 }
             });
         }
