@@ -4,6 +4,8 @@ const bodyParser = require("body-parser");
 const ejs = require("ejs");
 var async = require("async");
 const crypto = require("crypto");
+const validator = require("validator");
+const helmet = require("helmet");
 const nodemailer = require("nodemailer");
 const Discogs = require("disconnect").Client;
 var db = new Discogs({consumerKey: process.env.DISCOGS_API_KEY, consumerSecret: process.env.DISCOGS_SECRET}).database();
@@ -30,10 +32,21 @@ const app = express();
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static("public"));
+app.use(helmet.contentSecurityPolicy({
+        directives: {
+            defaultSrc: ["'self'"],
+            imgSrc: ["'self'", 'i.discogs.com']
+        }
+    })
+);
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        secure: false
+    }
 }));
 app.use(passport.initialize());
 app.use(passport.authenticate("session"));
@@ -84,9 +97,15 @@ app.get("/", function (req, res) {
     if (req.isAuthenticated()) {
         if (req.user.displayname === undefined) res.redirect("/change/displayname");
         else {
+            var loggedIn = req.query.loggedIn;
+            var googleDisplayname = req.query.googleDisplayname;
+
+            if (loggedIn !== undefined) loggedIn = validator.escape(loggedIn);
+            if (googleDisplayname !== undefined) googleDisplayname = validator.escape(googleDisplayname);
+
             const logged = {
-                loggedIn: req.query.loggedIn,
-                googleDisplayname: req.query.googleDisplayname
+                loggedIn: loggedIn,
+                googleDisplayname: googleDisplayname
             }
             res.render("userHome", logged);
         }
@@ -97,11 +116,19 @@ app.get("/", function (req, res) {
 app.get("/login", function (req, res) {
     if (req.isAuthenticated()) res.render("loggedIn");
     else {
+        var error = req.query.error;
+        var accCreated = req.query.accCreated;
+        var pwReset = req.query.pwReset;
+
+        if (error !== undefined) error = validator.escape(error);
+        if (accCreated !== undefined) accCreated = validator.escape(accCreated);
+        if (pwReset !== undefined) pwReset = validator.escape(pwReset);
+
         const errCheck = {
             page: "Login",
-            error: req.query.error,
-            accCreated: req.query.accCreated,
-            pwReset: req.query.pwReset
+            error: error,
+            accCreated: accCreated,
+            pwReset: pwReset
         };
         res.render("login", errCheck);
     }
@@ -112,12 +139,22 @@ app.get("/register", function (req, res) {
     if (req.isAuthenticated()) {
         res.render("loggedIn");
     } else {
+        var error = req.query.error;
+        var duplicatePwError = req.query.duplicatePwError;
+        var duplicateEmail = req.query.duplicateEmail;
+        var duplicateDisplayname = req.query.duplicateDisplayname;
+
+        if (error !== undefined) error = validator.escape(error);
+        if (duplicatePwError !== undefined) duplicatePwError = validator.escape(duplicatePwError);
+        if (duplicateEmail !== undefined) duplicateEmail = validator.escape(duplicateEmail);
+        if (duplicateDisplayname !== undefined) duplicateDisplayname = validator.escape(duplicateDisplayname);
+
         const errCheck = {
             page: "Register",
-            error: req.query.error,
-            duplicatePwError: req.query.duplicatePwError,
-            duplicateEmail: req.query.duplicateEmail,
-            duplicateDisplayname: req.query.duplicateDisplayname
+            error: error,
+            duplicatePwError: duplicatePwError,
+            duplicateEmail: duplicateEmail,
+            duplicateDisplayname: duplicateDisplayname
         };
         res.render("register", errCheck);
     }
@@ -143,20 +180,28 @@ app.get("/loggedIn", function (req, res) {
 
 app.get("/account", function (req, res) {
     if (req.isAuthenticated()) {
+        var displaynameUpdate = req.query.displaynameUpdate;
+        var emailUpdate = req.query.emailUpdate;
+        var passwordUpdate = req.query.passwordUpdate;
+
+        if (displaynameUpdate !== undefined) displaynameUpdate = validator.escape(displaynameUpdate);
+        if (emailUpdate !== undefined) emailUpdate = validator.escape(emailUpdate);
+        if (passwordUpdate !== undefined) passwordUpdate = validator.escape(passwordUpdate);
+
         if (req.user.googleId === undefined) {
             const message = {
-                displaynameUpdate: req.query.displaynameUpdate,
-                emailUpdate: req.query.emailUpdate,
-                passwordUpdate: req.query.passwordUpdate,
+                displaynameUpdate: displaynameUpdate,
+                emailUpdate: emailUpdate,
+                passwordUpdate: passwordUpdate,
                 googleAcc: false
             }
             res.render("account", message);
         }
         else if (req.user.googleId !== undefined) {
             const message = {
-                displaynameUpdate: req.query.displaynameUpdate,
-                emailUpdate: req.query.emailUpdate,
-                passwordUpdate: req.query.passwordUpdate,
+                displaynameUpdate: displaynameUpdate,
+                emailUpdate: emailUpdate,
+                passwordUpdate: passwordUpdate,
                 googleAcc: true
             }
             res.render("account", message);
@@ -168,12 +213,22 @@ app.get("/account", function (req, res) {
 
 app.get("/forget", function (req, res) {
     if (!req.isAuthenticated()) {
+        var entered = req.query.entered;
+        var error = req.query.error;
+        var noEmail = req.query.noEmail;
+        var tokenExpired = req.query.tokenExpired;
+
+        if (entered !== undefined) entered = validator.escape(entered);
+        if (error !== undefined) error = validator.escape(error);
+        if (noEmail !== undefined) noEmail = validator.escape(noEmail);
+        if (tokenExpired !== undefined) tokenExpired = validator.escape(tokenExpired);
+
         const message = {
             page: "Forget",
-            entered: req.query.entered,
-            error: req.query.error,
-            noEmail: req.query.noEmail,
-            tokenExpired: req.query.tokenExpired
+            entered: entered,
+            error: error,
+            noEmail: noEmail,
+            tokenExpired: tokenExpired
         }
         res.render("forget", message);
     }
@@ -183,17 +238,28 @@ app.get("/forget", function (req, res) {
 
 app.get("/passwordReset", function (req, res) {
     if (!req.isAuthenticated()) {
-        User.findOne({"_id": req.query.userID}, {"_id": 0, "token": 1}, function (err, result) {
+        var userID = req.query.userID;
+        if (userID !== undefined) userID = validator.escape(userID);
+
+        User.findOne({"_id": userID}, {"_id": 0, "token": 1}, function (err, result) {
             if (err) console.log(err);
             else {
                 if (!result) res.redirect("/forget?tokenExpired=true");
                 else {
-                    if (result.token === req.query.token) {
+                    var token = req.query.token;
+                    if (token !== undefined) token = validator.escape(token);
+
+                    if (result.token === token) {
+                        var error = req.query.error;
+                        var duplicatePwError = req.query.duplicatePwError;
+                        if (error !== undefined) error = validator.escape(error);
+                        if (duplicatePwError !== undefined) duplicatePwError = validator.escape(duplicatePwError);
+
                         const reset = {
-                            error: req.query.error,
-                            duplicatePwError: req.query.duplicatePwError,
-                            userID: req.query.userID,
-                            token: req.query.token
+                            error: error,
+                            duplicatePwError: duplicatePwError,
+                            userID: userID,
+                            token: token
                         }
                         res.render("passwordReset", reset);
                     } else res.redirect("/forget?tokenExpired=true");
@@ -206,17 +272,29 @@ app.get("/passwordReset", function (req, res) {
 
 
 app.get("/change/:type", function (req, res) {
-    const type = req.params.type;
+    const type = validator.escape(req.params.type);
     if (req.isAuthenticated()) {
+        var error = req.query.error;
+        var pwError = req.query.pwError;
+        var duplicatePwError = req.query.duplicatePwError;
+        var duplicateEmail = req.query.duplicateEmail;
+        var duplicateDisplayname = req.query.duplicateDisplayname;
+
+        if (error !== undefined) error = validator.escape(error);
+        if (pwError !== undefined) pwError = validator.escape(pwError);
+        if (duplicatePwError !== undefined) duplicatePwError = validator.escape(duplicatePwError);
+        if (duplicateEmail !== undefined) duplicateEmail = validator.escape(duplicateEmail);
+        if (duplicateDisplayname !== undefined) duplicateDisplayname = validator.escape(duplicateDisplayname);
+
         if (type === "displayname") {
             if (req.user.googleId === undefined) {
                 const changeType = {
                     page: "Change",
-                    error: req.query.error,
-                    pwError: req.query.pwError,
-                    duplicatePwError: req.query.duplicatePwError,
-                    duplicateEmail: req.query.duplicateEmail,
-                    duplicateDisplayname: req.query.duplicateDisplayname,
+                    error: error,
+                    pwError: pwError,
+                    duplicatePwError: duplicatePwError,
+                    duplicateEmail: duplicateEmail,
+                    duplicateDisplayname: duplicateDisplayname,
                     buttonValue: "changeDisplayname",
                     googleAcc: false
                 }
@@ -225,11 +303,11 @@ app.get("/change/:type", function (req, res) {
             else {
                 const changeType = {
                     page: "Change",
-                    error: req.query.error,
-                    pwError: req.query.pwError,
-                    duplicatePwError: req.query.duplicatePwError,
-                    duplicateEmail: req.query.duplicateEmail,
-                    duplicateDisplayname: req.query.duplicateDisplayname,
+                    error: error,
+                    pwError: pwError,
+                    duplicatePwError: duplicatePwError,
+                    duplicateEmail: duplicateEmail,
+                    duplicateDisplayname: duplicateDisplayname,
                     buttonValue: "changeDisplayname",
                     googleAcc: true
                 }
@@ -241,11 +319,11 @@ app.get("/change/:type", function (req, res) {
             else {
                 const changeType = {
                     page: "Change",
-                    error: req.query.error,
-                    pwError: req.query.pwError,
-                    duplicatePwError: req.query.duplicatePwError,
-                    duplicateEmail: req.query.duplicateEmail,
-                    duplicateDisplayname: req.query.duplicateDisplayname,
+                    error: error,
+                    pwError: pwError,
+                    duplicatePwError: duplicatePwError,
+                    duplicateEmail: duplicateEmail,
+                    duplicateDisplayname: duplicateDisplayname,
                     buttonValue: "changeEmail",
                     googleAcc: false
                 }
@@ -257,11 +335,11 @@ app.get("/change/:type", function (req, res) {
             else {
                 const changeType = {
                     page: "Change",
-                    error: req.query.error,
-                    pwError: req.query.pwError,
-                    duplicatePwError: req.query.duplicatePwError,
-                    duplicateEmail: req.query.duplicateEmail,
-                    duplicateDisplayname: req.query.duplicateDisplayname,
+                    error: error,
+                    pwError: pwError,
+                    duplicatePwError: duplicatePwError,
+                    duplicateEmail: duplicateEmail,
+                    duplicateDisplayname: duplicateDisplayname,
                     buttonValue: "changePassword",
                     googleAcc: false
                 }
@@ -290,9 +368,15 @@ app.get("/userHome", function (req, res) {
     if (req.isAuthenticated()) {
         if (req.user.displayname === undefined) res.redirect("/change/displayname");
         else {
+            var loggedIn = req.query.loggedIn;
+            var googleDisplayname = req.query.googleDisplayname;
+
+            if (loggedIn !== undefined) loggedIn = validator.escape(loggedIn);
+            if (googleDisplayname !== undefined) googleDisplayname = validator.escape(googleDisplayname);
+
             const logged = {
-                loggedIn: req.query.loggedIn,
-                googleDisplayname: req.query.googleDisplayname
+                loggedIn: loggedIn,
+                googleDisplayname: googleDisplayname
             }
             res.render("userHome", logged);
         }
@@ -304,7 +388,8 @@ app.get("/userHome", function (req, res) {
 
 app.get("/userProfile", function (req, res) {
     if (req.isAuthenticated()) {
-        const page = req.query.page;
+        var page = req.query.page;
+        if (page !== undefined) page = validator.escape(page);
         if (page === undefined) res.redirect("/userProfile?page=1");
         else {
             const albums = ((page - 1) * 10) + 1;
@@ -320,18 +405,36 @@ app.get("/userProfile", function (req, res) {
                             else if (page > pageLimit) res.redirect("/userProfile?page=" + pageLimit);
                             else if (page <= 0) res.redirect("/userProfile?page=1");
                             else {
+                                var added = req.query.added;
+                                var removed = req.query.removed;
+                                var reordered = req.query.reordered;
+                                var reorder = req.query.reorder;
+                                var reorderError = req.query.reorderError;
+                                var samePos = req.query.samePos;
+                                var goto = req.query.goto;
+                                var gotoError = req.query.gotoError;
+
+                                if (added !== undefined) added = validator.escape(added);
+                                if (removed !== undefined) removed = validator.escape(removed);
+                                if (reordered !== undefined) reordered = validator.escape(reordered);
+                                if (reorder !== undefined) reorder = validator.escape(reorder);
+                                if (reorderError !== undefined) reorderError = validator.escape(reorderError);
+                                if (samePos !== undefined) samePos = validator.escape(samePos);
+                                if (goto !== undefined) goto = validator.escape(goto);
+                                if (gotoError !== undefined) gotoError = validator.escape(gotoError);
+
                                 setTimeout(function () {
                                     res.render("userProfile", {
                                         albumList: results,
-                                        added: req.query.added,
-                                        removed: req.query.removed,
-                                        reordered: req.query.reordered,
-                                        reorder: req.query.reorder,
-                                        reorderError: req.query.reorderError,
-                                        samePos: req.query.samePos,
-                                        page: req.query.page,
-                                        goto: req.query.goto,
-                                        gotoError: req.query.gotoError,
+                                        added: added,
+                                        removed: removed,
+                                        reordered: reordered,
+                                        reorder: reorder,
+                                        reorderError: reorderError,
+                                        samePos: samePos,
+                                        page: page,
+                                        goto: goto,
+                                        gotoError: gotoError,
                                         listSize: listSize,
                                         pages: pageLimit
                                     });
@@ -349,16 +452,21 @@ app.get("/userProfile", function (req, res) {
 
 
 app.get("/albumSearch", function (req, res) {
+    var notFound = req.query.notFound;
+    var error = req.query.error;
+    if (notFound !== undefined) notFound = validator.escape(notFound);
+    if (error !== undefined) error = validator.escape(error);
+
     if (req.isAuthenticated()) {
         res.render("albumSearch", {
-            notFound: req.query.notFound,
-            error: req.query.error,
+            notFound: notFound,
+            error: error,
             logged: true
         });
     } else {
         res.render("albumSearch", {
-            notFound: req.query.notFound,
-            error: req.query.error,
+            notFound: notFound,
+            error: error,
             logged: false
         });
     }
@@ -366,7 +474,8 @@ app.get("/albumSearch", function (req, res) {
 
 
 app.get("/album/:albumId", function (req, res) {
-    const album = req.params.albumId;
+    var album = req.params.albumId;
+    if (album !== undefined) album = validator.escape(album);
 
     var artistName = "";
     var albumName = "";
@@ -448,9 +557,11 @@ app.get("/album/:albumId", function (req, res) {
                         }
                     }
                 }
-    
+
                 if (req.isAuthenticated()) {
-                    const addAlbum = req.body.add;
+                    var addAlbum = req.body.add;
+                    if (addAlbum !== undefined) addAlbum = validator.escape(addAlbum);
+
                     if (addAlbum === "added") {
                         Album.countDocuments({}, function (err, count) {
                             if (err) console.log(err);
@@ -472,6 +583,9 @@ app.get("/album/:albumId", function (req, res) {
                         });
                     }
                     else {
+                        var duplicate = req.query.duplicate;
+                        if (duplicate !== undefined) duplicate = validator.escape(duplicate);
+
                         setTimeout(function () {
                             res.render("album", {
                                 logged: true,
@@ -483,13 +597,16 @@ app.get("/album/:albumId", function (req, res) {
                                 videoMap: videoMap,
                                 genre: genreAlbum,
                                 tracks: tracklist,
-                                duplicate: req.query.duplicate
+                                duplicate: duplicate
                             });
                         }, 500);
                     }
                 }
                 
                 else {
+                    var duplicate = req.query.duplicate;
+                    if (duplicate !== undefined) duplicate = validator.escape(duplicate);
+
                     setTimeout(function () {
                         res.render("album", {
                             logged: false,
@@ -501,7 +618,7 @@ app.get("/album/:albumId", function (req, res) {
                             videoMap: videoMap,
                             genre: genreAlbum,
                             tracks: tracklist,
-                            duplicate: req.query.duplicate
+                            duplicate: duplicate
                         });
                     }, 500);
                 }
@@ -515,32 +632,42 @@ app.post("/login", passport.authenticate("local", {successRedirect: "/userHome?l
 
 
 app.post("/register", function (req, res) {
-    if (req.body.username === "" || req.body.displayname === "" || req.body.passwordNew1 === "" || req.body.passwordNew2 === "") res.redirect("/register?error=true");
+    var username = req.body.username;
+    var displayname = req.body.displayname;
+    var passwordNew1 = req.body.passwordNew1;
+    var passwordNew2 = req.body.passwordNew2;
+
+    if (username !== undefined) username = validator.escape(username);
+    if (displayname !== undefined) displayname = validator.escape(displayname);
+    if (passwordNew1 !== undefined) passwordNew1 = validator.escape(passwordNew1);
+    if (passwordNew2 !== undefined) passwordNew2 = validator.escape(passwordNew2);
+
+    if (username === "" || displayname === "" || passwordNew1 === "" || passwordNew2 === "") res.redirect("/register?error=true");
     else if (req.isAuthenticated()) res.redirect("/loggedIn");
     else {
-        if (req.body.passwordNew1 !== req.body.passwordNew2) {
+        if (passwordNew1 !== passwordNew2) {
             res.redirect("/register?duplicatePwError=true");
         }
 
         else {
-            User.countDocuments({"username": req.body.username}, function (err, count) {
+            User.countDocuments({"username": username}, function (err, count) {
                 if (err) console.log(err);
                 else if (count >= 1) res.redirect("/register?duplicateEmail=true");
                 else {
-                    User.countDocuments({"displayname": req.body.displayname}, function (err, count) {
+                    User.countDocuments({"displayname": displayname}, function (err, count) {
                         if (err) console.log(err);
                         else if (count >= 1) res.redirect("/register?duplicateDisplayname=true");
                         else {
                             bcrypt.genSalt(10, function (err, salt) {
                                 if (err) console.log(err);
                                 else {
-                                    bcrypt.hash(req.body.passwordNew2, salt, function (err, hash) {
+                                    bcrypt.hash(passwordNew2, salt, function (err, hash) {
                                         if (err) res.redirect("/register?duplicatePwError=true");
                                         else {
                                             const newUser = new User({
-                                                username: req.body.username,
+                                                username: username,
                                                 password: hash,
-                                                displayname: req.body.displayname,
+                                                displayname: displayname,
                                             });
                                             newUser.save();
                                             res.redirect("/login?accCreated=true");
@@ -558,13 +685,16 @@ app.post("/register", function (req, res) {
 
 
 app.post("/forget", function (req, res) {
-    if (req.body.username === "") res.redirect("/forget?error=true")
+    var username = req.body.username;
+    if (username !== undefined) username = validator.escape(username);
+
+    if (username === "") res.redirect("/forget?error=true")
     else {
-        User.countDocuments({username: req.body.username}, function (err, count) {
+        User.countDocuments({username: username}, function (err, count) {
             if (err) console.log(err);
             else if (count < 1) res.redirect("/forget?noEmail=true");
             else {
-                User.findOne({username: req.body.username}, {_id: 1}, function (err, id) {
+                User.findOne({username: username}, {_id: 1}, function (err, id) {
                     if (err) console.log(err);
                     else {
                         var token = "";
@@ -579,7 +709,7 @@ app.post("/forget", function (req, res) {
                                     else {
                                         const email = {
                                             from: process.env.NODEMAILER_USER,
-                                            to: req.body.username,
+                                            to: username,
                                             subject: "Musica Password Recovery",
                                             //update this html field when posted online
                                             html: "<h2>Password Reset</h2><p>Click the link below to reset your Musica user password. If you did not request this, please ingore this email.</p><br><a href='http://localhost:3000/passwordReset?userID=" + id._id + "&token=" + token + "'>Musica Password Reset</a>" 
@@ -602,11 +732,17 @@ app.post("/forget", function (req, res) {
 
 app.post("/passwordReset", function (req, res) {
     if (!req.isAuthenticated()) {
-        const userID = req.query.userID;
-        const token = req.query.token;
-        if (req.body.passwordNew1 === "" || req.body.passwordNew2 === "") res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&error=true");
+        const userID = validator.escape(req.query.userID);
+        const token = validator.escape(req.query.token);
+        var passwordNew1 = req.body.passwordNew1;
+        var passwordNew2 = req.body.passwordNew2;
+
+        if (passwordNew1 !== undefined) passwordNew1 = validator.escape(passwordNew1);
+        if (passwordNew2 !== undefined) passwordNew2 = validator.escape(passwordNew2);
+
+        if (passwordNew1 === "" || passwordNew2 === "") res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&error=true");
         else {
-            if (req.body.passwordNew1 !== req.body.passwordNew2) res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&duplicatePwError=true");
+            if (passwordNew1 !== passwordNew2) res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&duplicatePwError=true");
             else {
                 User.findOne({"_id": userID}, {token: token}, function (err, user) {
                     if (err) console.log(err);
@@ -615,10 +751,10 @@ app.post("/passwordReset", function (req, res) {
                         bcrypt.genSalt(10, function (err, salt) {
                             if (err) console.log(err);
                             else {
-                                bcrypt.hash(req.body.passwordNew2, salt, function (err, hash) {
+                                bcrypt.hash(passwordNew2, salt, function (err, hash) {
                                     if (err) console.log(err);
                                     else {
-                                        User.updateOne({"_id": req.query.userID}, {$set: {password: hash}, 
+                                        User.updateOne({"_id": userID}, {$set: {password: hash}, 
                                                                 $unset: {token: 1, tokenExpire: 1, awaitingReset: 1}}, function (err, result) {
                                             if (err) console.log(err);
                                             else res.redirect("/login?pwReset=true");
@@ -638,24 +774,36 @@ app.post("/passwordReset", function (req, res) {
 
 app.post("/change/:type", function (req, res) {
     if (req.isAuthenticated()) {
-        const type = req.params.type;
+        var type = validator.escape(req.params.type);
+        var displayname = req.body.displayname;
+        var email = req.body.email;
+        var password = req.body.password;
+        var passwordNew1 = req.body.passwordNew1;
+        var passwordNew2 = req.body.passwordNew2;
+
+        if (displayname !== undefined) displayname = validator.escape(displayname);
+        if (email !== undefined) email = validator.escape(email);
+        if (password !== undefined) password = validator.escape(password);
+        if (passwordNew1 !== undefined) passwordNew1 = validator.escape(passwordNew1);
+        if (passwordNew2 !== undefined) passwordNew2 = validator.escape(passwordNew2);
+
         if (type === "displayname") {
             if (req.user.googleId === undefined) {
-                if (req.body.displayname === "" || req.body.password === "") res.redirect("/change/displayname?error=true");
+                if (displayname === "" || password === "") res.redirect("/change/displayname?error=true");
                 else {
-                    User.countDocuments({"displayname": req.body.displayname}, function (err, count) {
+                    User.countDocuments({"displayname": displayname}, function (err, count) {
                         if (err) console.log(err);
                         else if (count >= 1) res.redirect("/change/displayname?duplicateDisplayname=true");
                         else {
                             User.findOne({"_id": req.user._id}, function (err, user) {
                                 if (err) console.log(err);
                                 else {
-                                    bcrypt.compare(req.body.password, user.password, function (err, result) {
+                                    bcrypt.compare(password, user.password, function (err, result) {
                                         if (err) res.redirect("/change/displayname?pwError=true");
                                         else if (result === false) res.redirect("/change/displayname?pwError=true");
                                         else {
-                                            if (req.body.displayname === "") res.redirect("/change/displayname?error=true");
-                                            User.updateOne({"_id": req.user._id}, {$set: {displayname: req.body.displayname}}, function (err, result) {
+                                            if (displayname === "") res.redirect("/change/displayname?error=true");
+                                            User.updateOne({"_id": req.user._id}, {$set: {displayname: displayname}}, function (err, result) {
                                                 if (err) console.log(err);
                                                 else res.redirect("/account?displaynameUpdate=true");
                                             });
@@ -668,13 +816,13 @@ app.post("/change/:type", function (req, res) {
                 }
             }
             else {
-                if (req.body.displayname === "") res.redirect("/change/displayname?error=true");
+                if (displayname === "") res.redirect("/change/displayname?error=true");
                 else {
-                    User.countDocuments({"displayname": req.body.displayname}, function (err, count) {
+                    User.countDocuments({"displayname": displayname}, function (err, count) {
                         if (err) console.log(err);
                         else if (count >= 1) res.redirect("/change/displayname?duplicateDisplayname=true");
                         else {
-                            User.updateOne({"_id": req.user._id}, {$set: {displayname: req.body.displayname}}, function (err, result) {
+                            User.updateOne({"_id": req.user._id}, {$set: {displayname: displayname}}, function (err, result) {
                                 if (err) console.log(err);
                                 else res.redirect("/userHome?googleDisplayname=true");
                             });
@@ -686,20 +834,20 @@ app.post("/change/:type", function (req, res) {
 
         else if (type === "email") {
             if (req.user.googleId !== undefined) res.redirect("/account");
-            if (req.body.email === "" || req.body.password === "") res.redirect("/change/email?error=true");
+            if (email === "" || password === "") res.redirect("/change/email?error=true");
             else {
-                User.countDocuments({"username": req.body.email}, function (err, count) {
+                User.countDocuments({"username": email}, function (err, count) {
                     if (err) console.log(err);
                     else if (count >= 1) res.redirect("/change/email?duplicateEmail=true");
                     else {
                         User.findOne({"_id": req.user._id}, function (err, user) {
                             if (err) console.log(err);
                             else {
-                                bcrypt.compare(req.body.password, user.password, function (err, result) {
+                                bcrypt.compare(password, user.password, function (err, result) {
                                     if (err) res.redirect("/change/email?pwError=true");
                                     else if (result === false) res.redirect("/change/email?pwError=true");
                                     else {
-                                        User.updateOne({"_id": req.user._id}, {$set: {username: req.body.email}}, function (err, result) {
+                                        User.updateOne({"_id": req.user._id}, {$set: {username: email}}, function (err, result) {
                                             if (err) console.log(err);
                                             else res.redirect("/account?emailUpdate=true");
                                         });
@@ -714,20 +862,20 @@ app.post("/change/:type", function (req, res) {
 
         else if (type === "password") {
             if (req.user.googleId !== undefined) res.redirect("/account");
-            if (req.body.password === "" || req.body.passwordNew1 === "" || req.body.passwordNew2 === "") res.redirect("/change/password?error=true");
+            if (password === "" || passwordNew1 === "" || passwordNew2 === "") res.redirect("/change/password?error=true");
             else {
                 User.findOne({"_id": req.user._id}, function (err, user) {
                     if (err) console.log(err);
                     else {
-                        bcrypt.compare(req.body.password, user.password, function (err, result) {
+                        bcrypt.compare(password, user.password, function (err, result) {
                             if (err) res.redirect("/change/password?pwError=true");
                             else if (result === false) res.redirect("/change/password?pwError=true");
-                            else if (req.body.passwordNew1 !== req.body.passwordNew2) res.redirect("/change/password?duplicatePwError=true");
+                            else if (passwordNew1 !== passwordNew2) res.redirect("/change/password?duplicatePwError=true");
                             else {
                                 bcrypt.genSalt(10, function (err, salt) {
                                     if (err) console.log(err);
                                     else {
-                                        bcrypt.hash(req.body.passwordNew2, salt, function (err, hash) {
+                                        bcrypt.hash(passwordNew2, salt, function (err, hash) {
                                             if (err) res.redirect("/change/password?duplicatePwError=true");
                                             else {
                                                 User.updateOne({"_id": req.user._id}, {$set: {password: hash}}, function (err, result) {
@@ -751,10 +899,15 @@ app.post("/change/:type", function (req, res) {
 
 app.post("/userProfile", function (req, res) {
     if (req.isAuthenticated()) {
-        const end = req.body.end;
-        const goto = req.body.goto;
-        const albumRemove = req.body.remove;
-        const reorderedAlbum = req.body.reordered;
+        var end = req.body.end;
+        var goto = req.body.goto;
+        var albumRemove = req.body.remove;
+        var reorderedAlbum = req.body.reordered;
+
+        if (end !== undefined) end = validator.escape(end);
+        if (goto !== undefined) goto = validator.escape(goto);
+        if (albumRemove !== undefined) albumRemove = validator.escape(albumRemove);
+        if (reorderedAlbum !== undefined) reorderedAlbum = validator.escape(reorderedAlbum);
         
         //Jump to End of List
         if (end === "end") {
@@ -770,7 +923,10 @@ app.post("/userProfile", function (req, res) {
 
         //Page Select
         else if (goto === "goto") {
-            const gotoPage = parseInt(req.body.gotoPage);
+            var gotoPage = req.body.gotoPage;
+            if (gotoPage !== undefined) gotoPage = validator.escape(gotoPage);
+
+            gotoPage = parseInt(gotoPage);
             Album.findOne({albumID: albumRemove}, {position: 1}, function (err, albumPos) {
                 if (err) console.log(err);
                 else {
@@ -819,7 +975,10 @@ app.post("/userProfile", function (req, res) {
         
         //Reorder Album
         else {
-            const newPos = parseInt(req.body.newPos);
+            var newPos = req.body.newPos;
+            if (newPos !== undefined) newPos = validator.escape(newPos);
+
+            newPos = parseInt(newPos);
             Album.find({albumID: reorderedAlbum}, {albumID: 1, position: 1}, function (err, id) {
                 if (err) {
                     console.log(err);
@@ -887,27 +1046,32 @@ app.post("/userProfile", function (req, res) {
 
 
 app.post("/albumSearch", function (req, res) {
-    const artistName = req.body.userArtist;
-    const albumName = req.body.userAlbum;
-    const albumYear = req.body.year;
+    var artistName = req.body.userArtist;
+    var albumName = req.body.userAlbum;
+    var albumYear = req.body.year;
     var discogsId = req.body.discogsId;
 
-    if (artistName === "" && albumName === "" && albumYear === "" && discogsId === "") res.redirect("albumSearch?error=true");
+    if (artistName !== undefined) artistName = validator.escape(artistName);
+    if (albumName !== undefined) albumName = validator.escape(albumName);
+    if (albumYear !== undefined) albumYear = validator.escape(albumYear);
+    if (discogsId !== undefined) discogsId = validator.escape(discogsId);
+
+    if (artistName === "" && albumName === "" && albumYear === "" && discogsId === "") res.redirect("/albumSearch?error=true");
 
     else {
         if (discogsId !== "") {
             if (discogsId.charAt(0) !== "0" && discogsId.charAt(0) !== "1" && discogsId.charAt(0) !== "2" && discogsId.charAt(0) !== "3" && discogsId.charAt(0) !== "4" &&
                 discogsId.charAt(0) !== "5" && discogsId.charAt(0) !== "6" && discogsId.charAt(0) !== "7" && discogsId.charAt(0) !== "8" && discogsId.charAt(0) !== "9")
-                res.redirect("albumSearch?error=true");
+                res.redirect("/albumSearch?error=true");
             else {
                 discogsId = parseInt(discogsId);
                 db.search({master_id: discogsId}).then(function (searchResult) {
                     if (searchResult.results.length > 0) {
                         setTimeout(function () {
-                            res.redirect("album/" + searchResult.results[0].master_id);
+                            res.redirect("/album/" + searchResult.results[0].master_id);
                         }, 1000);
                     }
-                    else res.redirect("albumSearch?notFound=true");
+                    else res.redirect("/albumSearch?notFound=true");
                 });
             }
         }
@@ -937,21 +1101,21 @@ app.post("/albumSearch", function (req, res) {
     
                     if (albumID1 < albumID2) {
                         setTimeout(function () {
-                            res.redirect("album/" + albumID1);
+                            res.redirect("/album/" + albumID1);
                         }, 1000);
                     } else if (albumID1 > albumID2) {
                         setTimeout(function () {
-                            res.redirect("album/" + albumID2);
+                            res.redirect("/album/" + albumID2);
                         }, 1000);
                     } else {
                         albumID1 = searchResult.results[0].master_id;
                         setTimeout(function () {
-                            res.redirect("album/" + albumID1);
+                            res.redirect("/album/" + albumID1);
                         }, 1000);
                     }
                 }
                 else {
-                    res.redirect("albumSearch?notFound=true");
+                    res.redirect("/albumSearch?notFound=true");
                 }
             });
         }
@@ -960,7 +1124,9 @@ app.post("/albumSearch", function (req, res) {
 
 
 app.post("/album/:albumId", function (req, res) {
-    const album = req.params.albumId;
+    var album = req.params.albumId;
+    if (album !== undefined) album = validator.escape(album);
+
     Album.countDocuments({albumID: album}, function (err, result) {
         if (err) console.log(err);
         else if (result > 0) res.redirect("/album/" + album + "?duplicate=true");
@@ -1045,7 +1211,9 @@ app.post("/album/:albumId", function (req, res) {
                     }
 
                     if (req.isAuthenticated()) {
-                        const addAlbum = req.body.add;
+                        var addAlbum = req.body.add;
+                        if (addAlbum !== undefined) addAlbum = validator.escape(addAlbum);
+
                         if (addAlbum === "added") {
                             Album.countDocuments({}, function (err, count) {
                                 if (err) console.log(err);
