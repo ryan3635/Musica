@@ -105,7 +105,8 @@ app.get("/", function (req, res) {
 
             const logged = {
                 loggedIn: loggedIn,
-                googleDisplayname: googleDisplayname
+                googleDisplayname: googleDisplayname,
+                list: req.user.displayname
             }
             res.render("userHome", logged);
         }
@@ -143,18 +144,21 @@ app.get("/register", function (req, res) {
         var duplicatePwError = req.query.duplicatePwError;
         var duplicateEmail = req.query.duplicateEmail;
         var duplicateDisplayname = req.query.duplicateDisplayname;
+        var displaynameError = req.query.displaynameError;
 
         if (error !== undefined) error = validator.escape(error);
         if (duplicatePwError !== undefined) duplicatePwError = validator.escape(duplicatePwError);
         if (duplicateEmail !== undefined) duplicateEmail = validator.escape(duplicateEmail);
         if (duplicateDisplayname !== undefined) duplicateDisplayname = validator.escape(duplicateDisplayname);
+        if (displaynameError !== undefined) displaynameError = validator.escape(displaynameError);
 
         const errCheck = {
             page: "Register",
             error: error,
             duplicatePwError: duplicatePwError,
             duplicateEmail: duplicateEmail,
-            duplicateDisplayname: duplicateDisplayname
+            duplicateDisplayname: duplicateDisplayname,
+            displaynameError: displaynameError
         };
         res.render("register", errCheck);
     }
@@ -193,7 +197,8 @@ app.get("/account", function (req, res) {
                 displaynameUpdate: displaynameUpdate,
                 emailUpdate: emailUpdate,
                 passwordUpdate: passwordUpdate,
-                googleAcc: false
+                googleAcc: false,
+                list: req.user.displayname
             }
             res.render("account", message);
         }
@@ -202,7 +207,8 @@ app.get("/account", function (req, res) {
                 displaynameUpdate: displaynameUpdate,
                 emailUpdate: emailUpdate,
                 passwordUpdate: passwordUpdate,
-                googleAcc: true
+                googleAcc: true,
+                list: req.user.displayname
             }
             res.render("account", message);
         } else res.redirect("/account");
@@ -279,12 +285,14 @@ app.get("/change/:type", function (req, res) {
         var duplicatePwError = req.query.duplicatePwError;
         var duplicateEmail = req.query.duplicateEmail;
         var duplicateDisplayname = req.query.duplicateDisplayname;
+        var displaynameError = req.query.displaynameError;
 
         if (error !== undefined) error = validator.escape(error);
         if (pwError !== undefined) pwError = validator.escape(pwError);
         if (duplicatePwError !== undefined) duplicatePwError = validator.escape(duplicatePwError);
         if (duplicateEmail !== undefined) duplicateEmail = validator.escape(duplicateEmail);
         if (duplicateDisplayname !== undefined) duplicateDisplayname = validator.escape(duplicateDisplayname);
+        if (displaynameError !== undefined) displaynameError = validator.escape(displaynameError);
 
         if (type === "displayname") {
             if (req.user.googleId === undefined) {
@@ -295,6 +303,7 @@ app.get("/change/:type", function (req, res) {
                     duplicatePwError: duplicatePwError,
                     duplicateEmail: duplicateEmail,
                     duplicateDisplayname: duplicateDisplayname,
+                    displaynameError: displaynameError,
                     buttonValue: "changeDisplayname",
                     googleAcc: false
                 }
@@ -308,6 +317,7 @@ app.get("/change/:type", function (req, res) {
                     duplicatePwError: duplicatePwError,
                     duplicateEmail: duplicateEmail,
                     duplicateDisplayname: duplicateDisplayname,
+                    displaynameError: displaynameError,
                     buttonValue: "changeDisplayname",
                     googleAcc: true
                 }
@@ -324,6 +334,7 @@ app.get("/change/:type", function (req, res) {
                     duplicatePwError: duplicatePwError,
                     duplicateEmail: duplicateEmail,
                     duplicateDisplayname: duplicateDisplayname,
+                    displaynameError: displaynameError,
                     buttonValue: "changeEmail",
                     googleAcc: false
                 }
@@ -340,6 +351,7 @@ app.get("/change/:type", function (req, res) {
                     duplicatePwError: duplicatePwError,
                     duplicateEmail: duplicateEmail,
                     duplicateDisplayname: duplicateDisplayname,
+                    displaynameError: displaynameError,
                     buttonValue: "changePassword",
                     googleAcc: false
                 }
@@ -368,6 +380,9 @@ app.get("/userHome", function (req, res) {
     if (req.isAuthenticated()) {
         if (req.user.displayname === undefined) res.redirect("/change/displayname");
         else {
+            var displayName = req.params.displayName;
+            if (displayName !== undefined) displayName = validator.escape(displayName);
+
             var loggedIn = req.query.loggedIn;
             var googleDisplayname = req.query.googleDisplayname;
 
@@ -376,78 +391,116 @@ app.get("/userHome", function (req, res) {
 
             const logged = {
                 loggedIn: loggedIn,
-                googleDisplayname: googleDisplayname
+                googleDisplayname: googleDisplayname,
+                list: req.user.displayname
             }
             res.render("userHome", logged);
         }
     } else {
-        res.redirect("/login");
+        res.redirect("/");
     }
 });
 
 
-app.get("/userProfile", function (req, res) {
-    if (req.isAuthenticated()) {
-        var page = req.query.page;
-        if (page !== undefined) page = validator.escape(page);
-        if (page === undefined) res.redirect("/userProfile?page=1");
+app.get("/userProfile/:displayName", function (req, res) {
+    var displayName = req.params.displayName;
+    if (displayName !== undefined) displayName = validator.escape(displayName);
+    User.findOne({displayname: displayName}, function (err, userId) {
+        if (err) console.log(err);
+        else if (!userId) res.redirect("/");
         else {
-            const albums = ((page - 1) * 10) + 1;
-            Album.find({"position": {$gte: albums}}, null, {sort: {position: 1}}, function (err, results) {
-                if (err) console.log(err);
-                else {
-                    Album.countDocuments({}, function (err, count) {
-                        if (err) console.log(err);
-                        else {
-                            const listSize = count;
-                            const pageLimit = (Math.trunc(count/10) + 1);
-                            if ((count % 10) === 0 && count >= 10 && page == pageLimit) res.redirect("/userProfile?page=" + (pageLimit - 1));
-                            else if (page > pageLimit) res.redirect("/userProfile?page=" + pageLimit);
-                            else if (page <= 0) res.redirect("/userProfile?page=1");
+            const userID = userId._id;
+            var page = req.query.page;
+            if (page !== undefined) page = validator.escape(page);
+            if (page === undefined) res.redirect("/userProfile/" + displayName + "?page=1");
+            else {
+                const albums = ((page - 1) * 10) + 1;
+                Album.find({"position": {$gte: albums}, "userID": userID}, null, {sort: {position: 1}}, function (err, results) {
+                    if (err) console.log(err);
+                    else {
+                        Album.countDocuments({"userID": userID}, function (err, count) {
+                            if (err) console.log(err);
                             else {
-                                var added = req.query.added;
-                                var removed = req.query.removed;
-                                var reordered = req.query.reordered;
-                                var reorder = req.query.reorder;
-                                var reorderError = req.query.reorderError;
-                                var samePos = req.query.samePos;
-                                var goto = req.query.goto;
-                                var gotoError = req.query.gotoError;
+                                const listSize = count;
+                                const pageLimit = (Math.trunc(count/10) + 1);
+                                if ((count % 10) === 0 && count >= 10 && page == pageLimit) res.redirect("/userProfile/" + displayName + "?page=" + (pageLimit - 1));
+                                else if (page > pageLimit) res.redirect("/userProfile/" + displayName + "?page=" + pageLimit);
+                                else if (page <= 0) res.redirect("/userProfile/" + displayName + "?page=1");
+                                else {
+                                    var added = req.query.added;
+                                    var removed = req.query.removed;
+                                    var reordered = req.query.reordered;
+                                    var reorder = req.query.reorder;
+                                    var reorderError = req.query.reorderError;
+                                    var samePos = req.query.samePos;
+                                    var goto = req.query.goto;
+                                    var gotoError = req.query.gotoError;
 
-                                if (added !== undefined) added = validator.escape(added);
-                                if (removed !== undefined) removed = validator.escape(removed);
-                                if (reordered !== undefined) reordered = validator.escape(reordered);
-                                if (reorder !== undefined) reorder = validator.escape(reorder);
-                                if (reorderError !== undefined) reorderError = validator.escape(reorderError);
-                                if (samePos !== undefined) samePos = validator.escape(samePos);
-                                if (goto !== undefined) goto = validator.escape(goto);
-                                if (gotoError !== undefined) gotoError = validator.escape(gotoError);
+                                    if (added !== undefined) added = validator.escape(added);
+                                    if (removed !== undefined) removed = validator.escape(removed);
+                                    if (reordered !== undefined) reordered = validator.escape(reordered);
+                                    if (reorder !== undefined) reorder = validator.escape(reorder);
+                                    if (reorderError !== undefined) reorderError = validator.escape(reorderError);
+                                    if (samePos !== undefined) samePos = validator.escape(samePos);
+                                    if (goto !== undefined) goto = validator.escape(goto);
+                                    if (gotoError !== undefined) gotoError = validator.escape(gotoError);
 
-                                setTimeout(function () {
-                                    res.render("userProfile", {
-                                        albumList: results,
-                                        added: added,
-                                        removed: removed,
-                                        reordered: reordered,
-                                        reorder: reorder,
-                                        reorderError: reorderError,
-                                        samePos: samePos,
-                                        page: page,
-                                        goto: goto,
-                                        gotoError: gotoError,
-                                        listSize: listSize,
-                                        pages: pageLimit
-                                    });
-                                }, 500);
+                                    var logged = false;
+                                    if (req.user) {
+                                        if (userId.displayname === req.user.displayname) logged = true;
+                                        else logged = false;
+                                    }
+                                    
+                                    if (req.user) {
+                                        setTimeout(function () {
+                                            res.render("userProfile", {
+                                                albumList: results,
+                                                added: added,
+                                                removed: removed,
+                                                reordered: reordered,
+                                                reorder: reorder,
+                                                reorderError: reorderError,
+                                                samePos: samePos,
+                                                page: page,
+                                                goto: goto,
+                                                gotoError: gotoError,
+                                                listSize: listSize,
+                                                pages: pageLimit,
+                                                list: displayName,
+                                                logged: logged,
+                                                loggedToolbar: true
+                                            });
+                                        }, 500);
+                                    }
+                                    else {
+                                        setTimeout(function () {
+                                            res.render("userProfile", {
+                                                albumList: results,
+                                                added: added,
+                                                removed: removed,
+                                                reordered: reordered,
+                                                reorder: reorder,
+                                                reorderError: reorderError,
+                                                samePos: samePos,
+                                                page: page,
+                                                goto: goto,
+                                                gotoError: gotoError,
+                                                listSize: listSize,
+                                                pages: pageLimit,
+                                                list: displayName,
+                                                logged: logged,
+                                                loggedToolbar: false
+                                            });
+                                        }, 500);
+                                    }
+                                }
                             }
-                        }
-                    });
-                }
-            }).limit(10);
+                        });
+                    }
+                }).limit(10);
+            }
         }
-    } else {
-        res.redirect("/login");
-    }
+    });
 });
 
 
@@ -461,13 +514,15 @@ app.get("/albumSearch", function (req, res) {
         res.render("albumSearch", {
             notFound: notFound,
             error: error,
-            logged: true
+            logged: true,
+            list: req.user.displayname
         });
     } else {
         res.render("albumSearch", {
             notFound: notFound,
             error: error,
-            logged: false
+            logged: false,
+            list: ""
         });
     }
 });
@@ -563,7 +618,7 @@ app.get("/album/:albumId", function (req, res) {
                     if (addAlbum !== undefined) addAlbum = validator.escape(addAlbum);
 
                     if (addAlbum === "added") {
-                        Album.countDocuments({}, function (err, count) {
+                        Album.countDocuments({"userID": req.user._id}, function (err, count) {
                             if (err) console.log(err);
                             else {
                                 const albumAdd = new Album({
@@ -577,7 +632,7 @@ app.get("/album/:albumId", function (req, res) {
                                 albumAdd.save();
                                 setTimeout(function () {
                                     const page = Math.trunc(count/10);
-                                    res.redirect("/userProfile?page=" + (page + 1) + "&added=true");
+                                    res.redirect("/userProfile/" + req.user.displayname + "?page=" + (page + 1) + "&added=true");
                                 }, 1250);
                             }
                         });
@@ -597,7 +652,8 @@ app.get("/album/:albumId", function (req, res) {
                                 videoMap: videoMap,
                                 genre: genreAlbum,
                                 tracks: tracklist,
-                                duplicate: duplicate
+                                duplicate: duplicate,
+                                list: req.user.displayname
                             });
                         }, 500);
                     }
@@ -650,6 +706,8 @@ app.post("/register", function (req, res) {
         }
 
         else {
+            const regex = /^[a-zA-Z0-9]+$/;
+            const validName = regex.test(displayname);
             User.countDocuments({"username": username}, function (err, count) {
                 if (err) console.log(err);
                 else if (count >= 1) res.redirect("/register?duplicateEmail=true");
@@ -657,6 +715,7 @@ app.post("/register", function (req, res) {
                     User.countDocuments({"displayname": displayname}, function (err, count) {
                         if (err) console.log(err);
                         else if (count >= 1) res.redirect("/register?duplicateDisplayname=true");
+                        else if (validName === false || displayname.length > 20) res.redirect("/register?displaynameError=true");
                         else {
                             bcrypt.genSalt(10, function (err, salt) {
                                 if (err) console.log(err);
@@ -788,12 +847,15 @@ app.post("/change/:type", function (req, res) {
         if (passwordNew2 !== undefined) passwordNew2 = validator.escape(passwordNew2);
 
         if (type === "displayname") {
+            const regex = /^[a-zA-Z0-9]+$/;
+            const validName = regex.test(displayname);
             if (req.user.googleId === undefined) {
                 if (displayname === "" || password === "") res.redirect("/change/displayname?error=true");
                 else {
                     User.countDocuments({"displayname": displayname}, function (err, count) {
                         if (err) console.log(err);
                         else if (count >= 1) res.redirect("/change/displayname?duplicateDisplayname=true");
+                        else if (validName === false || displayname.length > 20) res.redirect("/change/displayname?displaynameError=true");
                         else {
                             User.findOne({"_id": req.user._id}, function (err, user) {
                                 if (err) console.log(err);
@@ -821,6 +883,7 @@ app.post("/change/:type", function (req, res) {
                     User.countDocuments({"displayname": displayname}, function (err, count) {
                         if (err) console.log(err);
                         else if (count >= 1) res.redirect("/change/displayname?duplicateDisplayname=true");
+                        else if (validName === false || displayname.length > 20) res.redirect("/change/displayname?displaynameError=true");
                         else {
                             User.updateOne({"_id": req.user._id}, {$set: {displayname: displayname}}, function (err, result) {
                                 if (err) console.log(err);
@@ -897,72 +960,83 @@ app.post("/change/:type", function (req, res) {
 });
 
 
-app.post("/userProfile", function (req, res) {
-    if (req.isAuthenticated()) {
-        var end = req.body.end;
-        var goto = req.body.goto;
-        var albumRemove = req.body.remove;
-        var reorderedAlbum = req.body.reordered;
+app.post("/userProfile/:displayName", function (req, res) {
+    var displayName = req.params.displayName;
+    if (displayName !== undefined) displayName = validator.escape(displayName);
+    
+    var end = req.body.end;
+    var goto = req.body.goto;
+    var albumRemove = req.body.remove;
+    var reorderedAlbum = req.body.reordered;
 
-        if (end !== undefined) end = validator.escape(end);
-        if (goto !== undefined) goto = validator.escape(goto);
-        if (albumRemove !== undefined) albumRemove = validator.escape(albumRemove);
-        if (reorderedAlbum !== undefined) reorderedAlbum = validator.escape(reorderedAlbum);
-        
-        //Jump to End of List
-        if (end === "end") {
-            Album.countDocuments({}, function (err, count) {
-                if (err) console.log(err);
+    if (end !== undefined) end = validator.escape(end);
+    if (goto !== undefined) goto = validator.escape(goto);
+    if (albumRemove !== undefined) albumRemove = validator.escape(albumRemove);
+    if (reorderedAlbum !== undefined) reorderedAlbum = validator.escape(reorderedAlbum);
+
+    User.findOne({displayname: displayName}, function (err, userId) {
+        if (err) console.log(err);
+        else {
+            const userID = userId._id;
+            //Jump to End of List
+            if (end === "end") {
+                Album.countDocuments({"userID": userID}, function (err, count) {
+                    if (err) console.log(err);
+                    else {
+                        const finalPage = (Math.trunc(count/10) + 1);
+                        if ((count % 10) === 0 && count > 10) res.redirect(displayName + "?page=" + (finalPage - 1));
+                        else res.redirect(displayName + "?page=" + finalPage);
+                    }
+                });
+            }
+
+            //Page Select
+            else if (goto === "goto") {
+                var gotoPage = req.body.gotoPage;
+                if (gotoPage !== undefined) gotoPage = validator.escape(gotoPage);
+
+                gotoPage = parseInt(gotoPage);
+                Album.findOne({"userID": userID, albumID: albumRemove}, {position: 1}, function (err, albumPos) {
+                    if (err) console.log(err);
+                    else {
+                        Album.countDocuments({"userID": userID}, function (err, count) {
+                            if (err) console.log(err);
+                            else {
+                                const pageLimit = (Math.trunc(count/10) + 1);
+                                const page = (Math.trunc(albumPos/10) + 1);
+                                if (gotoPage <= 0 || isNaN(gotoPage) || gotoPage > pageLimit) res.redirect(displayName + "?page=" + page + "&goto=true&gotoError=true");
+                                else res.redirect(displayName + "?page=" + gotoPage);
+                            }
+                        });
+                    }
+                });
+            }
+
+            //Remove Album
+            else if (albumRemove !== undefined) {
+                if (!req.user) res.redirect(displayName + "?page=1");
+                else if (userId.displayname !== req.user.displayname) res.redirect(displayName + "?page=1");
                 else {
-                    const finalPage = (Math.trunc(count/10) + 1);
-                    if ((count % 10) === 0 && count > 10) res.redirect("/userProfile?page=" + (finalPage - 1));
-                    else res.redirect("/userProfile?page=" + finalPage);
-                }
-            });
-        }
-
-        //Page Select
-        else if (goto === "goto") {
-            var gotoPage = req.body.gotoPage;
-            if (gotoPage !== undefined) gotoPage = validator.escape(gotoPage);
-
-            gotoPage = parseInt(gotoPage);
-            Album.findOne({albumID: albumRemove}, {position: 1}, function (err, albumPos) {
-                if (err) console.log(err);
-                else {
-                    Album.countDocuments({}, function (err, count) {
+                    Album.findOne({"userID": userID, albumID: albumRemove}, {position: 1}, function (err, albumPos) {
                         if (err) console.log(err);
                         else {
-                            const pageLimit = (Math.trunc(count/10) + 1);
-                            const page = (Math.trunc(albumPos/10) + 1);
-                            if (gotoPage <= 0 || isNaN(gotoPage) || gotoPage > pageLimit) res.redirect("/userProfile?page=" + page + "&goto=true&gotoError=true");
-                            else res.redirect("/userProfile?page=" + gotoPage);
-                        }
-                    });
-                }
-            });
-        }
-
-        //Remove Album
-        else if (albumRemove !== undefined) {
-            Album.findOne({albumID: albumRemove}, {position: 1}, function (err, albumPos) {
-                if (err) console.log(err);
-                else {
-                    Album.updateMany({"position": {$gt: albumPos.position}}, {$inc: {position: -1}}, function (err, result) {
-                        if (err) console.log(err);
-                        else {
-                            Album.deleteOne({albumID: albumRemove}, function (err, result) {
+                            Album.updateMany({"userID": userID, "position": {$gt: albumPos.position}}, {$inc: {position: -1}}, function (err, result) {
                                 if (err) console.log(err);
                                 else {
-                                    var page = (Math.trunc(albumPos.position/10) + 1);
-                                    if (albumPos.position % 10 === 0) page--;
-                                    Album.countDocuments({}, function (err, count) {
+                                    Album.deleteOne({"userID": userID, albumID: albumRemove}, function (err, result) {
                                         if (err) console.log(err);
                                         else {
-                                            setTimeout(function () {
-                                                if ((count % 10) === 0 && count >= 10) res.redirect("/userProfile?page=" + (page - 1) + "&reorder=true&removed=true");
-                                                else res.redirect("userProfile?page=" + page + "&reorder=true&removed=true");
-                                            }, 1250);
+                                            var page = (Math.trunc(albumPos.position/10) + 1);
+                                            if (albumPos.position % 10 === 0) page--;
+                                            Album.countDocuments({"userID": userID}, function (err, count) {
+                                                if (err) console.log(err);
+                                                else {
+                                                    setTimeout(function () {
+                                                        if ((count % 10) === 0 && count >= 10) res.redirect(displayName + "?page=" + (page - 1) + "&reorder=true&removed=true");
+                                                        else res.redirect(displayName + "?page=" + page + "&reorder=true&removed=true");
+                                                    }, 1250);
+                                                }
+                                            });
                                         }
                                     });
                                 }
@@ -970,78 +1044,81 @@ app.post("/userProfile", function (req, res) {
                         }
                     });
                 }
-            });
-        }
-        
-        //Reorder Album
-        else {
-            var newPos = req.body.newPos;
-            if (newPos !== undefined) newPos = validator.escape(newPos);
+            }
 
-            newPos = parseInt(newPos);
-            Album.find({albumID: reorderedAlbum}, {albumID: 1, position: 1}, function (err, id) {
-                if (err) {
-                    console.log(err);
-                    res.redirect("/userProfile?page=1");
-                }
+            //Reorder Album
+            else {
+                if (!req.user) res.redirect(displayName + "?page=1");
+                else if (userId.displayname !== req.user.displayname) res.redirect(displayName + "?page=1");
                 else {
-                    var page = (Math.trunc(id[0].position/10) + 1);
-                    if ((id[0].position % 10) === 0) page--;
-                    if (id !== undefined) {
-                        const currentPos = id[0].position;
-                        const currentId = id[0].albumID;
-
-                        Album.countDocuments({}, function (err, count) {
-                            if (err) console.log(err);
-                            else {
-                                if (newPos <= 0 || isNaN(newPos) || newPos > count) res.redirect("/userProfile?page=" + page + "&reorder=true&reorderError=true");
-                                else if (newPos === currentPos) res.redirect("/userProfile?page=" + page + "&reorder=true&samePos=true");
-                                else {
-                                    if (newPos > currentPos) {
-                                        var newPositionArray = new Array();
-                                        for (i = currentPos; i <= newPos; i++) {
-                                            newPositionArray.push(i);
-                                        }
-                                        async.eachSeries(newPositionArray, async function (pos, done) {
-                                            const shiftUp = await Album.updateOne({"position": pos}, {$set: {position: pos - 1}}, done);
-                                            if (pos === newPos) {
-                                                newPositionArray = [];
-                                                const final = await Album.updateOne({"albumID": currentId}, {$set: {position: newPos}});
-                                                return final;
-                                            }
-                                            else return shiftUp;
-                                        });
-                                    }
+                    var newPos = req.body.newPos;
+                    if (newPos !== undefined) newPos = validator.escape(newPos);
+    
+                    newPos = parseInt(newPos);
+                    Album.find({"userID": userID, albumID: reorderedAlbum}, {albumID: 1, position: 1}, function (err, id) {
+                        if (err) {
+                            console.log(err);
+                            res.redirect(displayName + "?page=1");
+                        }
+                        else {
+                            var page = (Math.trunc(id[0].position/10) + 1);
+                            if ((id[0].position % 10) === 0) page--;
+                            if (id !== undefined) {
+                                const currentPos = id[0].position;
+                                const currentId = id[0].albumID;
+    
+                                Album.countDocuments({"userID": userID}, function (err, count) {
+                                    if (err) console.log(err);
                                     else {
-                                        var newPositionArray = new Array();
-                                        for (i = currentPos; i >= newPos; i--) {
-                                            newPositionArray.push(i);
-                                        }
-                                        async.eachSeries(newPositionArray, async function (pos, done) {
-                                            const shiftDown = await Album.updateOne({"position": pos}, {$set: {position: pos + 1}}, done);
-                                            if (pos === newPos) {
-                                                newPositionArray = [];
-                                                const final = await Album.updateOne({"albumID": currentId}, {$set: {position: newPos}});
-                                                return final;
+                                        if (newPos <= 0 || isNaN(newPos) || newPos > count) res.redirect(displayName + "?page=" + page + "&reorder=true&reorderError=true");
+                                        else if (newPos === currentPos) res.redirect(displayName + "?page=" + page + "&reorder=true&samePos=true");
+                                        else {
+                                            if (newPos > currentPos) {
+                                                var newPositionArray = new Array();
+                                                for (i = currentPos; i <= newPos; i++) {
+                                                    newPositionArray.push(i);
+                                                }
+                                                async.eachSeries(newPositionArray, async function (pos, done) {
+                                                    const shiftUp = await Album.updateOne({"userID": userID, "position": pos}, {$set: {position: pos - 1}}, done);
+                                                    if (pos === newPos) {
+                                                        newPositionArray = [];
+                                                        const final = await Album.updateOne({"userID": userID, "albumID": currentId}, {$set: {position: newPos}});
+                                                        return final;
+                                                    }
+                                                    else return shiftUp;
+                                                });
                                             }
-                                            else return shiftDown;
-                                        });
+                                            else {
+                                                var newPositionArray = new Array();
+                                                for (i = currentPos; i >= newPos; i--) {
+                                                    newPositionArray.push(i);
+                                                }
+                                                async.eachSeries(newPositionArray, async function (pos, done) {
+                                                    const shiftDown = await Album.updateOne({"userID": userID, "position": pos}, {$set: {position: pos + 1}}, done);
+                                                    if (pos === newPos) {
+                                                        newPositionArray = [];
+                                                        const final = await Album.updateOne({"userID": userID, "albumID": currentId}, {$set: {position: newPos}});
+                                                        return final;
+                                                    }
+                                                    else return shiftDown;
+                                                });
+                                            }
+                                            setTimeout(function () {
+                                                page = (Math.trunc(newPos/10) + 1);
+                                                if ((newPos % 10) === 0) page--;
+                                                res.redirect(displayName + "?page=" + page + "&reordered=true&reorder=true");
+                                            }, 1250);
+                                        }
                                     }
-                                    setTimeout(function () {
-                                        page = (Math.trunc(newPos/10) + 1);
-                                        if ((newPos % 10) === 0) page--;
-                                        res.redirect("/userProfile?page=" + page + "&reordered=true&reorder=true");
-                                    }, 1250);
-                                }
+                                });
                             }
-                        });
-                    }
-                    else res.redirect("/userProfile?page=" + page + "&reorder=true&reorderError=true");
+                            else res.redirect(displayName + "?page=" + page + "&reorder=true&reorderError=true");
+                        }
+                    });
                 }
-            });
+            }
         }
-    }
-    else res.redirect("/login");
+    });
 });
 
 
@@ -1077,6 +1154,9 @@ app.post("/albumSearch", function (req, res) {
         }
     
         else {
+            if (albumName.includes("&#x27;")) albumName = albumName.replace("&#x27;", "'");
+            if (artistName.includes("&#x27;")) artistName = artistName.replace("&#x27;", "'");
+
             db.search({artist: artistName, release_title: albumName, year: albumYear, type: "master"}).then(function (searchResult) {
                 var albumID1 = 99999999999999;
                 var albumID2 = 99999999999999;
@@ -1124,102 +1204,103 @@ app.post("/albumSearch", function (req, res) {
 
 
 app.post("/album/:albumId", function (req, res) {
-    var album = req.params.albumId;
-    if (album !== undefined) album = validator.escape(album);
-
-    Album.countDocuments({albumID: album}, function (err, result) {
-        if (err) console.log(err);
-        else if (result > 0) res.redirect("/album/" + album + "?duplicate=true");
-        else {
-            var artistName = "";
-            var albumName = "";
-            var yearRelease = "";
-            var year = "";
-            var albumArt = "";
-            var videoTitle = new Array();
-            var videoLink = new Array();
-            var videoMap = new Map();
-            var genreAlbum = new Array();
-            var tracklist = new Array();
-
-            db.getMaster(album, function(err, data) {
-                if (data.artists !== undefined) {
-                    artistName = data.artists[0].name;
-                    albumName = data.title;
-                    yearRelease = data.year;
-                    albumArt = data.images[0].uri;
-
-                    if (data.year === 0 || undefined) {
-                        yearRelease = "";
-                        year = yearRelease;
-                    }
-                    else {
-                        yearRelease = "(" + data.year + ")";
-                        year = yearRelease.slice(1, yearRelease.length - 1);
-                    }
-
-                    if (data.videos !== undefined) {
-                        for (i = 0; i < data.videos.length; i++) {
-                            const artist = artistName + " - ";
-                            const artistEnd = " - " + artistName;
-                            const title = data.videos[i].title;
-                            var vidTitle = "";
-
-                            if (title.startsWith(artist) || title.startsWith(artistName + " – ") || title.startsWith(artist.toLowerCase()) || title.startsWith(artistName.toLowerCase() + " – ")) {
-                                vidTitle = title.slice(artist.length, title.length);
-                                videoTitle.push(vidTitle);
-                                videoLink.push(data.videos[i].uri);
+    if (req.isAuthenticated()) {
+        var album = req.params.albumId;
+        if (album !== undefined) album = validator.escape(album);
+    
+        Album.countDocuments({"userID": req.user._id, "albumID": album}, function (err, result) {
+            if (err) console.log(err);
+            else if (result > 0) res.redirect("/album/" + album + "?duplicate=true");
+            else {
+                var artistName = "";
+                var albumName = "";
+                var yearRelease = "";
+                var year = "";
+                var albumArt = "";
+                var videoTitle = new Array();
+                var videoLink = new Array();
+                var videoMap = new Map();
+                var genreAlbum = new Array();
+                var tracklist = new Array();
+    
+                db.getMaster(album, function(err, data) {
+                    if (data.artists !== undefined) {
+                        artistName = data.artists[0].name;
+                        albumName = data.title;
+                        yearRelease = data.year;
+                        albumArt = data.images[0].uri;
+    
+                        if (data.year === 0 || undefined) {
+                            yearRelease = "";
+                            year = yearRelease;
+                        }
+                        else {
+                            yearRelease = "(" + data.year + ")";
+                            year = yearRelease.slice(1, yearRelease.length - 1);
+                        }
+    
+                        if (data.videos !== undefined) {
+                            for (i = 0; i < data.videos.length; i++) {
+                                const artist = artistName + " - ";
+                                const artistEnd = " - " + artistName;
+                                const title = data.videos[i].title;
+                                var vidTitle = "";
+    
+                                if (title.startsWith(artist) || title.startsWith(artistName + " – ") || title.startsWith(artist.toLowerCase()) || title.startsWith(artistName.toLowerCase() + " – ")) {
+                                    vidTitle = title.slice(artist.length, title.length);
+                                    videoTitle.push(vidTitle);
+                                    videoLink.push(data.videos[i].uri);
+                                }
+                                else if (title.endsWith(artistEnd) || title.endsWith(" – " + artistName) || title.endsWith(artistEnd.toLowerCase()) || title.endsWith(" – " + artistName.toLowerCase())) {
+                                    vidTitle = title.slice(0, title.length - artistEnd.length);
+                                    videoTitle.push(vidTitle);
+                                    videoLink.push(data.videos[i].uri);
+                                }
+                                else {
+                                    videoTitle.push(data.videos[i].title);
+                                    videoLink.push(data.videos[i].uri);
+                                }
                             }
-                            else if (title.endsWith(artistEnd) || title.endsWith(" – " + artistName) || title.endsWith(artistEnd.toLowerCase()) || title.endsWith(" – " + artistName.toLowerCase())) {
-                                vidTitle = title.slice(0, title.length - artistEnd.length);
-                                videoTitle.push(vidTitle);
-                                videoLink.push(data.videos[i].uri);
+    
+                            var videoTitleLower = new Array();
+                            var videoMapTemp = new Map();
+    
+                            for (k = 0; k < videoTitle.length; k++) {
+                                videoTitleLower.push(videoTitle[k].toLowerCase());
+                                videoMapTemp.set(videoTitleLower[k], videoLink[k]);
                             }
-                            else {
-                                videoTitle.push(data.videos[i].title);
-                                videoLink.push(data.videos[i].uri);
+                            videoMap = new Map ([...videoMapTemp].sort((a, b) => String(a[0]).localeCompare(b[0])));
+                        }
+    
+                        if (data.genres !== undefined) {
+                            for (i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
+                        }
+                            
+                        if (data.styles !== undefined) {
+                            for (i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
+                        }
+    
+                        if (data.tracklist !== undefined) {
+                            var trackNumber = 0;
+                            for (i = 0; i < data.tracklist.length; i++) {
+                                if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
+                                    trackNumber++;
+                                    if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
+                                    else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
+                                }
                             }
                         }
-
-                        var videoTitleLower = new Array();
-                        var videoMapTemp = new Map();
-
-                        for (k = 0; k < videoTitle.length; k++) {
-                            videoTitleLower.push(videoTitle[k].toLowerCase());
-                            videoMapTemp.set(videoTitleLower[k], videoLink[k]);
-                        }
-                        videoMap = new Map ([...videoMapTemp].sort((a, b) => String(a[0]).localeCompare(b[0])));
-                    }
-
-                    if (data.genres !== undefined) {
-                        for (i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
-                    }
-                        
-                    if (data.styles !== undefined) {
-                        for (i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
-                    }
-
-                    if (data.tracklist !== undefined) {
-                        var trackNumber = 0;
-                        for (i = 0; i < data.tracklist.length; i++) {
-                            if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
-                                trackNumber++;
-                                if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
-                                else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
-                            }
-                        }
-                    }
-
-                    if (req.isAuthenticated()) {
+    
                         var addAlbum = req.body.add;
                         if (addAlbum !== undefined) addAlbum = validator.escape(addAlbum);
 
                         if (addAlbum === "added") {
-                            Album.countDocuments({}, function (err, count) {
+                            Album.countDocuments({"userID": req.user._id}, function (err, count) {
                                 if (err) console.log(err);
                                 else {
                                     const albumAdd = new Album({
                                         albumID: album,
+                                        userID: req.user._id,
                                         title: artistName + " - " + albumName,
                                         year: yearRelease,
                                         img: albumArt,
@@ -1229,12 +1310,15 @@ app.post("/album/:albumId", function (req, res) {
                                     albumAdd.save();
                                     setTimeout(function () {
                                         const page = Math.trunc(count/10);
-                                        res.redirect("/userProfile?page=" + (page + 1) + "&added=true");
+                                        res.redirect("/userProfile/" + req.user.displayname + "?page=" + (page + 1) + "&added=true");
                                     }, 1250);
                                 }
                             });
                         }
                         else {
+                            var duplicate = req.query.duplicate;
+                            if (duplicate !== undefined) duplicate = validator.escape(duplicate);
+
                             setTimeout(function () {
                                 res.render("album", {
                                     logged: true,
@@ -1245,31 +1329,17 @@ app.post("/album/:albumId", function (req, res) {
                                     cover: albumArt,
                                     videoMap: videoMap,
                                     genre: genreAlbum,
-                                    tracks: tracklist
+                                    tracks: tracklist,
+                                    duplicate: duplicate,
+                                    list: req.user.displayname
                                 });
                             }, 500);
                         }
                     }
-                    
-                    else {
-                        setTimeout(function () {
-                            res.render("album", {
-                                logged: false,
-                                albumID: album,
-                                artist: artistName,
-                                title: albumName,
-                                year: year,
-                                cover: albumArt,
-                                videoMap: videoMap,
-                                genre: genreAlbum,
-                                tracks: tracklist
-                            });
-                        }, 500);
-                    }
-                }
-            });
-        }
-    });
+                });
+            }
+        });
+    } else res.redirect("/login");
 });
 
 

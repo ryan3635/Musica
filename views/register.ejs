@@ -22,12 +22,16 @@
         <% if (duplicateDisplayname) { %>
             <p class="message hidden">Display Name Already Used!</p>
         <% } %>
+
+        <% if (displaynameError) { %>
+            <p class="message hidden">Display Name Must Only Contain Letters and Numbers!</p>
+        <% } %>
         <hr>
         
         <form action="/register" method="POST">
             <input type="email" name="username" id="username" placeholder="Email">
             <br>
-            <input type="text" name="displayname" id="displayname" placeholder="Display Name">
+            <input type="text" name="displayname" id="displayname" maxlength="20" placeholder="Display Name">
             <br>
             <input type="password" name="passwordNew1" id="passwordNew1" placeholder="New Password">
             <br>

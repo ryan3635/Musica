@@ -3,7 +3,7 @@
 
     <div id="toolbar">
         <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp &nbsp
-        <a href="/userProfile?page=1" class="buttonStyle">Your List</a> &nbsp &nbsp
+        <a href="/userProfile/<%=list%>?page=1" class="buttonStyle">Your List</a> &nbsp &nbsp
         <a href="/account" class="buttonStyle">Account</a> &nbsp &nbsp
         <a href="/logout" class="buttonStyle">Log out</a>
     </div>
@@ -20,7 +20,7 @@
         <hr>
         <h2>Your Feed</h2>
     </div>
-    <hr style="width: 22%; border-width: 1.9px;">
+    <hr style="width: 22%; border-width: 1.9px; margin-top: 2px">
 
     <%- include("footer") %>
 </div>

@@ -27,12 +27,16 @@
         <% if (duplicateDisplayname) { %>
             <p class="message hidden">Display Name Already Used!</p>
         <% } %>
+
+        <% if (displaynameError) { %>
+            <p class="message hidden">Display Name Must Only Contain Letters and Numbers!</p>
+        <% } %>
         <hr>
         <h2>User Account Settings</h2>
 
         <% if (buttonValue === 'changeDisplayname') { %>
             <form action="/change/displayname" method="POST">
-                <input type="text" name="displayname" id="displayname" placeholder="New Display Name">
+                <input type="text" name="displayname" id="displayname" maxlength="20" placeholder="New Display Name">
                 <br>
                 <% if (!googleAcc) { %>
                     <input type="password" name="password" id="password" placeholder="Account Password">

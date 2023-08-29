@@ -7,8 +7,7 @@ const userSchema = new mongoose.Schema({
     googleId: String,
     token: String,
     tokenExpire: Date,
-    awaitingReset: Boolean,
-    list: {type: mongoose.Schema.Types.ObjectId, ref: "userList"}
+    awaitingReset: Boolean
 });
 
 const passportLocalMongoose = require("passport-local-mongoose");
