@@ -26,6 +26,10 @@
         <% if (displaynameError) { %>
             <p class="message hidden">Display Name Must Only Contain Letters and Numbers!</p>
         <% } %>
+
+        <% if (displaynameSwear) { %>
+            <p class="message hidden">Display Name Must Not Contain Swear Words nor Asterisks!</p>
+        <% } %>
         <hr>
         
         <form action="/register" method="POST">

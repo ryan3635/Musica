@@ -5,6 +5,7 @@ const ejs = require("ejs");
 var async = require("async");
 const crypto = require("crypto");
 const validator = require("validator");
+const swearFilter = require("swearfilter");
 const helmet = require("helmet");
 const nodemailer = require("nodemailer");
 const Discogs = require("disconnect").Client;
@@ -18,9 +19,12 @@ const emailer = nodemailer.createTransport({
     }
 });
 
-const mongoose = require("mongoose");
-const mongodb = require("mongodb").MongoClient;
-const { Db } = require("mongodb");
+const filter = new swearFilter({
+    smartDetect: true,
+    baseFilter: {
+        useBaseFilter: true,
+    }
+});
 
 const bcrypt = require("bcrypt");
 const session = require("express-session");
@@ -51,6 +55,9 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.authenticate("session"));
 
+const mongoose = require("mongoose");
+const mongodb = require("mongodb").MongoClient;
+const { Db } = require("mongodb");
 mongoose.set("strictQuery", false);
 mongoose.connect("mongodb://localhost:27017/musicaDB", {useNewUrlParser: true, useUnifiedTopology: true});  //update this when posted online
 const User = require("./models/user");
@@ -145,12 +152,14 @@ app.get("/register", function (req, res) {
         var duplicateEmail = req.query.duplicateEmail;
         var duplicateDisplayname = req.query.duplicateDisplayname;
         var displaynameError = req.query.displaynameError;
+        var displaynameSwear = req.query.displaynameSwear;
 
         if (error !== undefined) error = validator.escape(error);
         if (duplicatePwError !== undefined) duplicatePwError = validator.escape(duplicatePwError);
         if (duplicateEmail !== undefined) duplicateEmail = validator.escape(duplicateEmail);
         if (duplicateDisplayname !== undefined) duplicateDisplayname = validator.escape(duplicateDisplayname);
         if (displaynameError !== undefined) displaynameError = validator.escape(displaynameError);
+        if (displaynameSwear !== undefined) displaynameSwear = validator.escape(displaynameSwear);
 
         const errCheck = {
             page: "Register",
@@ -158,7 +167,8 @@ app.get("/register", function (req, res) {
             duplicatePwError: duplicatePwError,
             duplicateEmail: duplicateEmail,
             duplicateDisplayname: duplicateDisplayname,
-            displaynameError: displaynameError
+            displaynameError: displaynameError,
+            displaynameSwear: displaynameSwear
         };
         res.render("register", errCheck);
     }
@@ -286,6 +296,7 @@ app.get("/change/:type", function (req, res) {
         var duplicateEmail = req.query.duplicateEmail;
         var duplicateDisplayname = req.query.duplicateDisplayname;
         var displaynameError = req.query.displaynameError;
+        var displaynameSwear = req.query.displaynameSwear;
 
         if (error !== undefined) error = validator.escape(error);
         if (pwError !== undefined) pwError = validator.escape(pwError);
@@ -293,6 +304,7 @@ app.get("/change/:type", function (req, res) {
         if (duplicateEmail !== undefined) duplicateEmail = validator.escape(duplicateEmail);
         if (duplicateDisplayname !== undefined) duplicateDisplayname = validator.escape(duplicateDisplayname);
         if (displaynameError !== undefined) displaynameError = validator.escape(displaynameError);
+        if (displaynameSwear !== undefined) displaynameSwear = validator.escape(displaynameSwear);
 
         if (type === "displayname") {
             if (req.user.googleId === undefined) {
@@ -304,6 +316,7 @@ app.get("/change/:type", function (req, res) {
                     duplicateEmail: duplicateEmail,
                     duplicateDisplayname: duplicateDisplayname,
                     displaynameError: displaynameError,
+                    displaynameSwear: displaynameSwear,
                     buttonValue: "changeDisplayname",
                     googleAcc: false
                 }
@@ -318,6 +331,7 @@ app.get("/change/:type", function (req, res) {
                     duplicateEmail: duplicateEmail,
                     duplicateDisplayname: duplicateDisplayname,
                     displaynameError: displaynameError,
+                    displaynameSwear: displaynameSwear,
                     buttonValue: "changeDisplayname",
                     googleAcc: true
                 }
@@ -335,6 +349,7 @@ app.get("/change/:type", function (req, res) {
                     duplicateEmail: duplicateEmail,
                     duplicateDisplayname: duplicateDisplayname,
                     displaynameError: displaynameError,
+                    displaynameSwear: displaynameSwear,
                     buttonValue: "changeEmail",
                     googleAcc: false
                 }
@@ -352,6 +367,7 @@ app.get("/change/:type", function (req, res) {
                     duplicateEmail: duplicateEmail,
                     duplicateDisplayname: duplicateDisplayname,
                     displaynameError: displaynameError,
+                    displaynameSwear: displaynameSwear,
                     buttonValue: "changePassword",
                     googleAcc: false
                 }
@@ -402,9 +418,15 @@ app.get("/userHome", function (req, res) {
 });
 
 
+app.get("/userProfile", function (req, res) {
+    res.render("userNoProfile");
+});
+
+
 app.get("/userProfile/:displayName", function (req, res) {
     var displayName = req.params.displayName;
-    if (displayName !== undefined) displayName = validator.escape(displayName);
+    if (displayName !== undefined || displayName === "") displayName = validator.escape(displayName);
+    else res.redirect("/userProfile");
     User.findOne({displayname: displayName}, function (err, userId) {
         if (err) console.log(err);
         else if (!userId) res.redirect("/");
@@ -704,7 +726,6 @@ app.post("/register", function (req, res) {
         if (passwordNew1 !== passwordNew2) {
             res.redirect("/register?duplicatePwError=true");
         }
-
         else {
             const regex = /^[a-zA-Z0-9]+$/;
             const validName = regex.test(displayname);
@@ -712,9 +733,11 @@ app.post("/register", function (req, res) {
                 if (err) console.log(err);
                 else if (count >= 1) res.redirect("/register?duplicateEmail=true");
                 else {
+                    displayname = filter.censor(displayname);
                     User.countDocuments({"displayname": displayname}, function (err, count) {
                         if (err) console.log(err);
                         else if (count >= 1) res.redirect("/register?duplicateDisplayname=true");
+                        else if (displayname.includes("*") || displayname.length > 20) res.redirect("/register?displaynameSwear=true");
                         else if (validName === false || displayname.length > 20) res.redirect("/register?displaynameError=true");
                         else {
                             bcrypt.genSalt(10, function (err, salt) {
@@ -852,9 +875,11 @@ app.post("/change/:type", function (req, res) {
             if (req.user.googleId === undefined) {
                 if (displayname === "" || password === "") res.redirect("/change/displayname?error=true");
                 else {
+                    displayname = filter.censor(displayname);
                     User.countDocuments({"displayname": displayname}, function (err, count) {
                         if (err) console.log(err);
                         else if (count >= 1) res.redirect("/change/displayname?duplicateDisplayname=true");
+                        else if (displayname.includes("*") || displayname.length > 20) res.redirect("/change/displayname?displaynameSwear=true");
                         else if (validName === false || displayname.length > 20) res.redirect("/change/displayname?displaynameError=true");
                         else {
                             User.findOne({"_id": req.user._id}, function (err, user) {
@@ -880,9 +905,11 @@ app.post("/change/:type", function (req, res) {
             else {
                 if (displayname === "") res.redirect("/change/displayname?error=true");
                 else {
+                    displayname = filter.censor(displayname);
                     User.countDocuments({"displayname": displayname}, function (err, count) {
                         if (err) console.log(err);
                         else if (count >= 1) res.redirect("/change/displayname?duplicateDisplayname=true");
+                        else if (displayname.includes("*") || displayname.length > 20) res.redirect("/change/displayname?displaynameSwear=true");
                         else if (validName === false || displayname.length > 20) res.redirect("/change/displayname?displaynameError=true");
                         else {
                             User.updateOne({"_id": req.user._id}, {$set: {displayname: displayname}}, function (err, result) {
