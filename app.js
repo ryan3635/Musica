@@ -572,7 +572,11 @@ app.get("/album/:albumId", function (req, res) {
                 artistName = data.artists[0].name;
                 albumName = data.title;
                 yearRelease = data.year;
-                albumArt = data.images[0].uri;
+
+                const censoredAlbums = require("./scripts/censoredAlbums");
+                if (censoredAlbums.includes(parseInt(album))) albumArt = "/censored.png";
+                else if (album == "24535") albumArt = data.images[5].uri; //special case
+                else albumArt = data.images[0].uri;
         
                 if (data.year === 0 || undefined) {
                     yearRelease = "";
@@ -623,6 +627,8 @@ app.get("/album/:albumId", function (req, res) {
                 if (data.styles !== undefined) {
                     for (i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
                 }
+
+                if (data.genres.includes("Death Metal", "Goregrind", "Pornogrind") || data.styles.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
     
                 if (data.tracklist !== undefined) {
                     var trackNumber = 0;
@@ -1255,7 +1261,11 @@ app.post("/album/:albumId", function (req, res) {
                         artistName = data.artists[0].name;
                         albumName = data.title;
                         yearRelease = data.year;
-                        albumArt = data.images[0].uri;
+                        
+                        const censoredAlbums = require("./scripts/censoredAlbums");
+                        if (censoredAlbums.includes(parseInt(album))) albumArt = "/censored.png";
+                        else if (album == "24535") albumArt = data.images[5].uri; //special case
+                        else albumArt = data.images[0].uri;
     
                         if (data.year === 0 || undefined) {
                             yearRelease = "";
@@ -1306,6 +1316,8 @@ app.post("/album/:albumId", function (req, res) {
                         if (data.styles !== undefined) {
                             for (i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
                         }
+
+                        if (data.genres.includes("Death Metal", "Goregrind", "Pornogrind") || data.styles.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
     
                         if (data.tracklist !== undefined) {
                             var trackNumber = 0;
