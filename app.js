@@ -622,14 +622,14 @@ app.get("/album/:albumId", function (req, res) {
         
                 if (data.genres !== undefined) {
                     for (i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
+                    if (data.genres.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
                 }
                     
                 if (data.styles !== undefined) {
                     for (i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
+                    if (data.styles.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
                 }
 
-                if (data.genres.includes("Death Metal", "Goregrind", "Pornogrind") || data.styles.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
-    
                 if (data.tracklist !== undefined) {
                     var trackNumber = 0;
                     for (i = 0; i < data.tracklist.length; i++) {
@@ -1311,13 +1311,13 @@ app.post("/album/:albumId", function (req, res) {
     
                         if (data.genres !== undefined) {
                             for (i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
+                            if (data.genres.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
                         }
                             
                         if (data.styles !== undefined) {
                             for (i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
+                            if (data.styles.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
                         }
-
-                        if (data.genres.includes("Death Metal", "Goregrind", "Pornogrind") || data.styles.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
     
                         if (data.tracklist !== undefined) {
                             var trackNumber = 0;
