@@ -42,9 +42,13 @@
         <% } %>
 
         <hr>
-        <h2><%=list%>'s Ranked List</h2>
+        <h2 style="margin-right: 25%"><%=list%></h2>
+
+        <h2>Ranked List</h2>
 
         <% if (listSize > 10) { %>
+            <hr style="width: 22%; border-width: 1.9px; margin-top: 5px;">
+
             <a href="/userProfile/<%=list%>?page=<%=page%>&goto=true" class="buttonStyle" style="font-size: 1.6rem; margin-top: -15px;">Page</a> &nbsp
             <p style="color: #ECE0B8; display: inline; font-weight: bold; font-size: 1.6rem; margin-top: -15px;">|</p> &nbsp
             <a href="/userProfile/<%=list%>?page=1" class="buttonStyle" style="font-size: 1.6rem; margin-top: -15px;">Beginning</a>
@@ -56,7 +60,7 @@
             <a href="/userProfile/<%=list%>?page=<%=page%>" class="buttonStyle" style="font-size: 1.6rem; margin-top: -15px;">Back</a> &nbsp
             <% page = page + 2 %>
             <a href="/userProfile/<%=list%>?page=<%=page%>" class="buttonStyle" style="font-size: 1.6rem; margin-top: -15px;">Next</a> &nbsp
-            <hr style="width: 22%; border-width: 1.9px; margin-top: -15px;">
+            <hr style="width: 22%; border-width: 1.9px; margin-top: -10px;">
         
         <% } else { %>
             <% page = 2 %>
