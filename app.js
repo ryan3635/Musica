@@ -575,8 +575,8 @@ app.get("/album/:albumId", function (req, res) {
 
                 const censoredAlbums = require("./scripts/censoredAlbums");
                 if (censoredAlbums.includes(parseInt(album))) albumArt = "/censored.png";
-                else if (album == "24535") albumArt = data.images[5].uri; //special case
-                else albumArt = data.images[0].uri;
+                else if (album == "24535" && data.images[5].uri !== undefined) albumArt = data.images[5].uri; //special case
+                else if (data.images[0].uri !== undefined) albumArt = data.images[0].uri;
         
                 if (data.year === 0 || undefined) {
                     yearRelease = "";
@@ -1264,8 +1264,8 @@ app.post("/album/:albumId", function (req, res) {
                         
                         const censoredAlbums = require("./scripts/censoredAlbums");
                         if (censoredAlbums.includes(parseInt(album))) albumArt = "/censored.png";
-                        else if (album == "24535") albumArt = data.images[5].uri; //special case
-                        else albumArt = data.images[0].uri;
+                        else if (album == "24535" && data.images[5].uri !== undefined) albumArt = data.images[5].uri; //special case
+                        else if (data.images[0].uri !== undefined) albumArt = data.images[0].uri;
     
                         if (data.year === 0 || undefined) {
                             yearRelease = "";

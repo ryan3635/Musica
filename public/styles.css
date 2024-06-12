@@ -137,6 +137,20 @@ hr {
     z-index: 2;
 }
 
+#homeFlex {
+    flex-direction: column;
+    display: flex;
+    margin-right: 50%;
+    /* height: 600px;
+    width: 500px; */
+}
+
+#homeEntry:h1 {
+    color: red;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
 #info {
     position: absolute;
     display: inline-block;
@@ -265,7 +279,7 @@ hr {
 
 .message {
     font-size: 1.6rem;
-    width: 25%;
+    width: 500px;
     display: inline-block;
     color: black;
     font-family: "Itim", Arial, sans-serif;

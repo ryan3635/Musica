@@ -22,5 +22,22 @@
     </div>
     <hr style="width: 22%; border-width: 1.9px; margin-top: 2px">
 
+    <div id="homeFlex">
+        <!-- update home when someone creates a list, updates a list, shares a list publicly -->
+        <!-- for now, have same feed for logged in and non-logged in users -->
+        <!-- have a maximum of 50? posts and then delete ones that are old -->
+        <!-- need new collection for public home feed -->
+        <!-- maybe a separate mongo db collection for each logged in user -->
+
+        <!-- for each item in public collection -->
+        <div id="homeEntry">
+            <p style="font-size: 1.5rem; font-weight: bold; font-style: italic; text-decoration: underline;">Ryan updated their list!</p>
+
+        </div>
+        <!-- for list creation, show first 10 album covers as little blocks -->
+        <!-- for single album adds, show album cover slighty bigger and give year + info -->
+        <!-- get img source, and album info (artist, title, year) -->
+    </div>
+
     <%- include("footer") %>
 </div>
