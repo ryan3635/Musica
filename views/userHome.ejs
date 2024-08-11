@@ -27,7 +27,8 @@
         <!-- for now, have same feed for logged in and non-logged in users -->
         <!-- have a maximum of 50? posts and then delete ones that are old -->
         <!-- need new collection for public home feed -->
-        <!-- maybe a separate mongo db collection for each logged in user -->
+        <!-- each document within the collection is one post on the home page -->
+        <!-- each has a special "post type", i.e. added to list, create list, share list, followed by the contents of the post (description, album art + info) -->
 
         <!-- for each item in public collection -->
         <div id="homeEntry">

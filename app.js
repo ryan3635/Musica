@@ -100,6 +100,7 @@ passport.use(new GoogleStrategy({
 ));
 
 
+
 app.get("/", function (req, res) {
     if (req.isAuthenticated()) {
         if (req.user.displayname === undefined) res.redirect("/change/displayname");
@@ -434,7 +435,11 @@ app.get("/userProfile/:displayName", function (req, res) {
             const userID = userId._id;
             var page = req.query.page;
             if (page !== undefined) page = validator.escape(page);
-            if (page === undefined) res.redirect("/userProfile/" + displayName + "?page=1");
+
+            const regex = /^[0-9]+$/;
+            const validPage = regex.test(page);
+            if (page === undefined || validPage === false) res.redirect("/userProfile/" + displayName + "?page=1");
+
             else {
                 const albums = ((page - 1) * 10) + 1;
                 Album.find({"position": {$gte: albums}, "userID": userID}, null, {sort: {position: 1}}, function (err, results) {
@@ -529,13 +534,16 @@ app.get("/userProfile/:displayName", function (req, res) {
 app.get("/albumSearch", function (req, res) {
     var notFound = req.query.notFound;
     var error = req.query.error;
+    var discogsSearch = req.query.discogsSearch;
     if (notFound !== undefined) notFound = validator.escape(notFound);
     if (error !== undefined) error = validator.escape(error);
+    if (discogsSearch !== undefined) discogsSearch = validator.escape(discogsSearch);
 
     if (req.isAuthenticated()) {
         res.render("albumSearch", {
             notFound: notFound,
             error: error,
+            discogsSearch: discogsSearch,
             logged: true,
             list: req.user.displayname
         });
@@ -543,6 +551,7 @@ app.get("/albumSearch", function (req, res) {
         res.render("albumSearch", {
             notFound: notFound,
             error: error,
+            discogsSearch: discogsSearch,
             logged: false,
             list: ""
         });
@@ -566,7 +575,11 @@ app.get("/album/:albumId", function (req, res) {
     var tracklist = new Array();
 
     db.getMaster(album, function(err, data) {
-        if (err) console.log(err);
+        if (err) {
+            console.log(err);
+            res.redirect("/albumSearch?notFound=true");
+        }
+
         else {
             if (data.artists !== undefined) {
                 artistName = data.artists[0].name;
@@ -707,9 +720,11 @@ app.get("/album/:albumId", function (req, res) {
                     }, 500);
                 }
             }
+            else res.redirect("albumSearch");
         }
     });
 });
+
 
 
 app.post("/login", passport.authenticate("local", {successRedirect: "/userHome?loggedIn=true", failureRedirect: "/login?error=true"}));
@@ -1166,14 +1181,15 @@ app.post("/albumSearch", function (req, res) {
     if (albumYear !== undefined) albumYear = validator.escape(albumYear);
     if (discogsId !== undefined) discogsId = validator.escape(discogsId);
 
-    if (artistName === "" && albumName === "" && albumYear === "" && discogsId === "") res.redirect("/albumSearch?error=true");
+    if (artistName === "" && albumName === "" && albumYear === "") res.redirect("/albumSearch?error=true");
 
     else {
-        if (discogsId !== "") {
-            if (discogsId.charAt(0) !== "0" && discogsId.charAt(0) !== "1" && discogsId.charAt(0) !== "2" && discogsId.charAt(0) !== "3" && discogsId.charAt(0) !== "4" &&
-                discogsId.charAt(0) !== "5" && discogsId.charAt(0) !== "6" && discogsId.charAt(0) !== "7" && discogsId.charAt(0) !== "8" && discogsId.charAt(0) !== "9")
-                res.redirect("/albumSearch?error=true");
+        if (discogsId !== undefined) {
+            const regex = /^[0-9]+$/;
+            const num = regex.test(discogsId);
+            if (num === false) res.redirect("/albumSearch?discogsSearch=true&error=true");
             else {
+                if (discogsId.length > 13) discogsId = discogsId.slice(0, 13);
                 discogsId = parseInt(discogsId);
                 db.search({master_id: discogsId}).then(function (searchResult) {
                     if (searchResult.results.length > 0) {
@@ -1181,12 +1197,13 @@ app.post("/albumSearch", function (req, res) {
                             res.redirect("/album/" + searchResult.results[0].master_id);
                         }, 1000);
                     }
-                    else res.redirect("/albumSearch?notFound=true");
+                    else res.redirect("/albumSearch?discogsSearch=true&notFound=true");
                 });
             }
         }
     
         else {
+            if (artistName === "" && albumName === "" && albumYear === "") res.redirect("/albumSearch?error=true");
             if (albumName.includes("&#x27;")) albumName = albumName.replace("&#x27;", "'");
             if (artistName.includes("&#x27;")) artistName = artistName.replace("&#x27;", "'");
 
@@ -1380,6 +1397,7 @@ app.post("/album/:albumId", function (req, res) {
         });
     } else res.redirect("/login");
 });
+
 
 
 app.listen(3000, function () {

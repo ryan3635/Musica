@@ -8,7 +8,9 @@
             <a href="/account" class="buttonStyle">Account</a> &nbsp &nbsp
             <a href="/logout" class="buttonStyle">Log out</a>
         <% } else { %>
-            <a href="/" class="buttonStyle">Go Back</a>
+            <a href="/" class="buttonStyle">Feed</a> &nbsp &nbsp
+            <a href="/login" class="buttonStyle">Login</a> &nbsp &nbsp
+            <a href="/register" class="buttonStyle">Register</a>
         <% } %>
     </div>
 
@@ -23,22 +25,34 @@
         <hr>
 
         <form action="/albumSearch" method="post">
-            <input type="text" name="userArtist" placeholder="Artist">
-            <br>
-            <input type="text" name="userAlbum" placeholder="Album">
-            <br>
-            <input type="text" name="year" placeholder="Year">
-            <br>
-            <h2 style="color: #15333f; font-size: 23px; font-family: Itim">- or -</h2>
-            <br>
-            <input type="text" name="discogsId" placeholder="Album Master ID">
+            <% if (!discogsSearch) { %>
+                <input type="text" name="userArtist" placeholder="Artist">
+                <br>
+                <input type="text" name="userAlbum" placeholder="Album">
+                <br>
+                <input type="text" name="year" placeholder="Year">
+                <br>
+                <h1 style="color: #15333f; font-size: 20px; font-family: Itim">Entry in all fields increase accuracy although not required</h1>
+            <% } else { %>
+                <input type="text" name="discogsId" placeholder="Album Master ID">
+                <br>
+                <h1 style="color: #15333f; font-size: 18px; font-family: Itim">Album master ID's can be found on <a href="https://www.discogs.com/" style="color: #15333f">Discogs</a></h1>
+                <br>
+                <h1 style="color: #15333f; font-size: 18px; font-family: Itim">(If the master release is [m42546] enter 42546 as the master ID)</h1>
+            <% } %>
             <button type="submit" class="buttonStyle" style="font-size: 2rem; margin-top: 10px">Search</button>
         </form>
+
         <hr style="width: 22%; border-width: 1.9px; margin-top: -15px">
-        <h2 style="color: #15333f; font-size: 23px; font-family: Itim">Entry in all fields increase accuracy although not required!</h2>
         <br>
-        <h2 style="color: #15333f; font-size: 18px; font-family: Itim">Album master ID's can be found on <a href="https://www.discogs.com/" style="color: #15333f">Discogs</a></h2>
-        <h2 style="color: #15333f; font-size: 18px; font-family: Itim">(If the master release is [m42546] enter 42546 as the master ID)</h2>
+
+        <% if (!discogsSearch) { %>
+        <h2 style="color: #15333f; font-size: 23px; font-family: Itim">Can't find an album?</h2>
+        <a href="/albumSearch?discogsSearch=true" class="buttonStyle">Use Discogs</a>
+
+        <% } else { %>
+            <a href="/albumSearch" class="buttonStyle">Back to album search</a>
+        <% } %>
     </div>
     <%- include("footer") %>
 </div>

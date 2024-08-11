@@ -314,7 +314,6 @@ hr {
     border-top-right-radius: 10%;
     border-bottom-right-radius: 10%;
     box-shadow: 0px 3px 3px 3px #15333f;
-    z-index: 10;
 }
 
 .textOverflow {
