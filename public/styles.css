@@ -120,11 +120,8 @@ hr {
     overflow-y: auto;
     white-space: nowrap;
     z-index: 3;
-    background-image: linear-gradient(to bottom, #008080, #FFDB58);
-    background-attachment: fixed;
-    border-top-left-radius: 10%;
-    border-bottom-left-radius: 10%;
-    box-shadow: 0px 3px 3px 3px #15333f;
+    border-left: #15333f solid 2px;
+    border-radius: 7px;
 }
 
 #feedFlex {
@@ -170,8 +167,6 @@ hr {
     border-top-left-radius: 10%;
     border-bottom-left-radius: 10%;
     text-underline-offset: 13.7%;
-    background-image: linear-gradient(to bottom, #008080, #FFDB58);
-    background-attachment: fixed;
     transition: 1s;
     box-shadow: 0px 3px 3px 3px #15333f;
     z-index: 30;
@@ -277,6 +272,17 @@ hr {
     transform:scale(0.8);
 }
 
+.listOptions {
+    display: block;
+    width: 35%;
+    margin: 0 auto;
+    padding: 10px;
+    border-top: 2px solid #15333f;
+    border-bottom: 2px solid #15333f;
+    border-width: 50%;
+    border-radius: 20%
+}
+
 .message {
     font-size: 1.6rem;
     width: 500px;
@@ -309,8 +315,6 @@ hr {
     overflow-y: auto;
     white-space: nowrap;
     z-index: 3;
-    background-image: linear-gradient(to bottom, #008080, #FFDB58);
-    background-attachment: fixed;
     border-top-right-radius: 10%;
     border-bottom-right-radius: 10%;
     box-shadow: 0px 3px 3px 3px #15333f;

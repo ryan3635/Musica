@@ -38,7 +38,7 @@
                 <br>
                 <h1 style="color: #15333f; font-size: 18px; font-family: Itim">Album master ID's can be found on <a href="https://www.discogs.com/" style="color: #15333f">Discogs</a></h1>
                 <br>
-                <h1 style="color: #15333f; font-size: 18px; font-family: Itim">(If the master release is [m42546] enter 42546 as the master ID)</h1>
+                <h1 style="color: #15333f; font-size: 18px; font-family: Itim">If the master release is [m42546] enter 42546 as the master ID</h1>
             <% } %>
             <button type="submit" class="buttonStyle" style="font-size: 2rem; margin-top: 10px">Search</button>
         </form>
@@ -48,10 +48,10 @@
 
         <% if (!discogsSearch) { %>
         <h2 style="color: #15333f; font-size: 23px; font-family: Itim">Can't find an album?</h2>
-        <a href="/albumSearch?discogsSearch=true" class="buttonStyle">Use Discogs</a>
+        <a href="/albumSearch?discogsSearch=true" class="buttonStyle" style="color: #15333f">Use Discogs</a>
 
         <% } else { %>
-            <a href="/albumSearch" class="buttonStyle">Back to album search</a>
+            <a href="/albumSearch" class="buttonStyle" style="color: #15333f">Back to album search</a>
         <% } %>
     </div>
     <%- include("footer") %>

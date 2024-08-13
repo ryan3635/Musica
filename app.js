@@ -565,7 +565,6 @@ app.get("/album/:albumId", function (req, res) {
 
     var artistName = "";
     var albumName = "";
-    var yearRelease = "";
     var year = "";
     var albumArt = "";
     var videoTitle = new Array();
@@ -584,21 +583,14 @@ app.get("/album/:albumId", function (req, res) {
             if (data.artists !== undefined) {
                 artistName = data.artists[0].name;
                 albumName = data.title;
-                yearRelease = data.year;
 
                 const censoredAlbums = require("./scripts/censoredAlbums");
                 if (censoredAlbums.includes(parseInt(album))) albumArt = "/censored.png";
                 else if (album == "24535" && data.images[5].uri !== undefined) albumArt = data.images[5].uri; //special case
                 else if (data.images[0].uri !== undefined) albumArt = data.images[0].uri;
         
-                if (data.year === 0 || undefined) {
-                    yearRelease = "";
-                    year = yearRelease;
-                }
-                else {
-                    yearRelease = "(" + data.year + ")";
-                    year = yearRelease.slice(1, yearRelease.length - 1);
-                }
+                if (data.year === 0 || undefined) year = "";
+                else year = data.year;
 
                 if (data.videos !== undefined) {
                     for (i = 0; i < data.videos.length; i++) {
@@ -657,47 +649,24 @@ app.get("/album/:albumId", function (req, res) {
                 if (req.isAuthenticated()) {
                     var addAlbum = req.body.add;
                     if (addAlbum !== undefined) addAlbum = validator.escape(addAlbum);
+                    var duplicate = req.query.duplicate;
+                    if (duplicate !== undefined) duplicate = validator.escape(duplicate);
 
-                    if (addAlbum === "added") {
-                        Album.countDocuments({"userID": req.user._id}, function (err, count) {
-                            if (err) console.log(err);
-                            else {
-                                const albumAdd = new Album({
-                                    albumID: album,
-                                    title: artistName + " - " + albumName,
-                                    year: yearRelease,
-                                    img: albumArt,
-                                    albumTracks: tracklist,
-                                    position: count + 1
-                                });
-                                albumAdd.save();
-                                setTimeout(function () {
-                                    const page = Math.trunc(count/10);
-                                    res.redirect("/userProfile/" + req.user.displayname + "?page=" + (page + 1) + "&added=true");
-                                }, 1250);
-                            }
+                    setTimeout(function () {
+                        res.render("album", {
+                            logged: true,
+                            albumID: album,
+                            artist: artistName,
+                            title: albumName,
+                            year: year,
+                            cover: albumArt,
+                            videoMap: videoMap,
+                            genre: genreAlbum,
+                            tracks: tracklist,
+                            duplicate: duplicate,
+                            list: req.user.displayname
                         });
-                    }
-                    else {
-                        var duplicate = req.query.duplicate;
-                        if (duplicate !== undefined) duplicate = validator.escape(duplicate);
-
-                        setTimeout(function () {
-                            res.render("album", {
-                                logged: true,
-                                albumID: album,
-                                artist: artistName,
-                                title: albumName,
-                                year: year,
-                                cover: albumArt,
-                                videoMap: videoMap,
-                                genre: genreAlbum,
-                                tracks: tracklist,
-                                duplicate: duplicate,
-                                list: req.user.displayname
-                            });
-                        }, 500);
-                    }
+                    }, 500);
                 }
                 
                 else {
@@ -1264,67 +1233,25 @@ app.post("/album/:albumId", function (req, res) {
             else {
                 var artistName = "";
                 var albumName = "";
-                var yearRelease = "";
                 var year = "";
                 var albumArt = "";
-                var videoTitle = new Array();
-                var videoLink = new Array();
-                var videoMap = new Map();
                 var genreAlbum = new Array();
+                var trackNumbers = new Array();
                 var tracklist = new Array();
+                var trackLength = new Array();
     
                 db.getMaster(album, function(err, data) {
                     if (data.artists !== undefined) {
                         artistName = data.artists[0].name;
                         albumName = data.title;
-                        yearRelease = data.year;
                         
                         const censoredAlbums = require("./scripts/censoredAlbums");
                         if (censoredAlbums.includes(parseInt(album))) albumArt = "/censored.png";
                         else if (album == "24535" && data.images[5].uri !== undefined) albumArt = data.images[5].uri; //special case
                         else if (data.images[0].uri !== undefined) albumArt = data.images[0].uri;
     
-                        if (data.year === 0 || undefined) {
-                            yearRelease = "";
-                            year = yearRelease;
-                        }
-                        else {
-                            yearRelease = "(" + data.year + ")";
-                            year = yearRelease.slice(1, yearRelease.length - 1);
-                        }
-    
-                        if (data.videos !== undefined) {
-                            for (i = 0; i < data.videos.length; i++) {
-                                const artist = artistName + " - ";
-                                const artistEnd = " - " + artistName;
-                                const title = data.videos[i].title;
-                                var vidTitle = "";
-    
-                                if (title.startsWith(artist) || title.startsWith(artistName + " – ") || title.startsWith(artist.toLowerCase()) || title.startsWith(artistName.toLowerCase() + " – ")) {
-                                    vidTitle = title.slice(artist.length, title.length);
-                                    videoTitle.push(vidTitle);
-                                    videoLink.push(data.videos[i].uri);
-                                }
-                                else if (title.endsWith(artistEnd) || title.endsWith(" – " + artistName) || title.endsWith(artistEnd.toLowerCase()) || title.endsWith(" – " + artistName.toLowerCase())) {
-                                    vidTitle = title.slice(0, title.length - artistEnd.length);
-                                    videoTitle.push(vidTitle);
-                                    videoLink.push(data.videos[i].uri);
-                                }
-                                else {
-                                    videoTitle.push(data.videos[i].title);
-                                    videoLink.push(data.videos[i].uri);
-                                }
-                            }
-    
-                            var videoTitleLower = new Array();
-                            var videoMapTemp = new Map();
-    
-                            for (k = 0; k < videoTitle.length; k++) {
-                                videoTitleLower.push(videoTitle[k].toLowerCase());
-                                videoMapTemp.set(videoTitleLower[k], videoLink[k]);
-                            }
-                            videoMap = new Map ([...videoMapTemp].sort((a, b) => String(a[0]).localeCompare(b[0])));
-                        }
+                        if (data.year === 0 || undefined) year = "";
+                        else year = data.year;
     
                         if (data.genres !== undefined) {
                             for (i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
@@ -1341,8 +1268,15 @@ app.post("/album/:albumId", function (req, res) {
                             for (i = 0; i < data.tracklist.length; i++) {
                                 if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
                                     trackNumber++;
-                                    if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
-                                    else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
+                                    if (data.tracklist[i].duration === '') {
+                                        trackNumbers.push(trackNumber)
+                                        tracklist.push(data.tracklist[i].title);
+                                    }
+                                    else {
+                                        trackNumbers.push(trackNumber)
+                                        tracklist.push(data.tracklist[i].title);
+                                        trackLength.push(data.tracklist[i].duration);
+                                    }
                                 }
                             }
                         }
@@ -1357,10 +1291,13 @@ app.post("/album/:albumId", function (req, res) {
                                     const albumAdd = new Album({
                                         albumID: album,
                                         userID: req.user._id,
-                                        title: artistName + " - " + albumName,
-                                        year: yearRelease,
+                                        title: albumName,
+                                        artist: artistName,
+                                        year: year,
                                         img: albumArt,
+                                        trackNumber: trackNumbers,
                                         albumTracks: tracklist,
+                                        trackLength: trackLength,
                                         position: count + 1
                                     });
                                     albumAdd.save();
@@ -1370,26 +1307,6 @@ app.post("/album/:albumId", function (req, res) {
                                     }, 1250);
                                 }
                             });
-                        }
-                        else {
-                            var duplicate = req.query.duplicate;
-                            if (duplicate !== undefined) duplicate = validator.escape(duplicate);
-
-                            setTimeout(function () {
-                                res.render("album", {
-                                    logged: true,
-                                    albumID: album,
-                                    artist: artistName,
-                                    title: albumName,
-                                    year: year,
-                                    cover: albumArt,
-                                    videoMap: videoMap,
-                                    genre: genreAlbum,
-                                    tracks: tracklist,
-                                    duplicate: duplicate,
-                                    list: req.user.displayname
-                                });
-                            }, 500);
                         }
                     }
                 });
