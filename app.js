@@ -426,6 +426,7 @@ app.get("/userProfile", function (req, res) {
 
 app.get("/userProfile/:displayName", function (req, res) {
     var displayName = req.params.displayName;
+    const yourList = req.user.displayName;
     if (displayName !== undefined || displayName === "") displayName = validator.escape(displayName);
     else res.redirect("/userProfile");
     User.findOne({displayname: displayName}, function (err, userId) {
@@ -494,6 +495,7 @@ app.get("/userProfile/:displayName", function (req, res) {
                                                 listSize: listSize,
                                                 pages: pageLimit,
                                                 list: displayName,
+                                                yourList: yourList,
                                                 logged: logged,
                                                 loggedToolbar: true
                                             });
@@ -515,6 +517,7 @@ app.get("/userProfile/:displayName", function (req, res) {
                                                 listSize: listSize,
                                                 pages: pageLimit,
                                                 list: displayName,
+                                                yourList: yourList,
                                                 logged: logged,
                                                 loggedToolbar: false
                                             });

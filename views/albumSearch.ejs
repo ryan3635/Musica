@@ -2,6 +2,7 @@
     <%- include("header") %>
 
     <div id="toolbar">
+        <p>Musica</p>
         <% if (logged) { %>
             <a href="/" class="buttonStyle">Feed</a> &nbsp &nbsp
             <a href="/userProfile/<%=list%>?page=1" class="buttonStyle">Your List</a> &nbsp &nbsp
@@ -15,16 +16,15 @@
     </div>
 
     <div id="header">
-        <h1>Musica</h1>
         <% if (notFound) { %>
             <p class="message hidden">Album not found!</p>
         <% } %>
         <% if (error) { %>
             <p class="message hidden">Invalid Entry!</p>
         <% } %>
-        <hr>
 
         <form action="/albumSearch" method="post">
+            <h2 style="padding-bottom: 15px">Album Search</h2>
             <% if (!discogsSearch) { %>
                 <input type="text" name="userArtist" placeholder="Artist">
                 <br>
@@ -51,7 +51,7 @@
         <a href="/albumSearch?discogsSearch=true" class="buttonStyle" style="color: #15333f">Use Discogs</a>
 
         <% } else { %>
-            <a href="/albumSearch" class="buttonStyle" style="color: #15333f">Back to album search</a>
+            <a href="/albumSearch" class="buttonStyle" style="color: #15333f">Back to Info Search</a>
         <% } %>
     </div>
     <%- include("footer") %>

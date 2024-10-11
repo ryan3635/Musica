@@ -2,10 +2,11 @@
     <%- include("header") %>
 
     <div id="toolbar">
+        <p>Musica</p>
         <a href="/userHome" class="buttonStyle">Feed</a> &nbsp &nbsp
         <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp &nbsp
         <% if (loggedToolbar) { %>
-            <a href="/userProfile/<%=list%>?page=1" class="buttonStyle">Your List</a> &nbsp &nbsp
+            <a href="/userProfile/<%=yourList%>?page=1" class="buttonStyle">Your List</a> &nbsp &nbsp
             <a href="/account" class="buttonStyle">Account</a> &nbsp &nbsp
             <a href="/logout" class="buttonStyle">Log out</a>
         <% } else { %>
@@ -15,8 +16,6 @@
     </div>
 
     <div id="header">
-        <h1>Musica</h1>
-
         <% if (added) { %>
             <p class="message hidden">Album Added!</p>
         <% } %>
@@ -41,14 +40,12 @@
             <p class="message hidden">Please Enter a Valid Page Number!</p>
         <% } %>
 
-        <hr>
-        <h2 style="margin-right: 25%"><%=list%></h2>
-
-        <h2>Ranked List</h2>
+        <h2><%=list%></h2>
+        <h2 style="margin-top: -9px">Ranked List</h2>
 
         <% if (listSize > 10) { %>
-            <div class="listOptions" style="width: 60%; border-top: none">
-                <hr style="width: 50%; border-width: 1.9px; margin-top: 5px; border-radius: 20%">
+            <div class="listOptions" style="width: 40%; border-top: none">
+                <hr style="width: 45%; border-width: 1.9px; margin-top: 5px; border-radius: 20%">
 
                 <a href="/userProfile/<%=list%>?page=<%=page%>&goto=true" class="buttonStyle" style="font-size: 1.6rem; margin-top: -15px;">Page Select</a> &nbsp
                 <p style="color: #ECE0B8; display: inline; font-weight: bold; font-size: 1.6rem; margin-top: -15px;">|</p> &nbsp
@@ -65,13 +62,12 @@
             
         <% } else { %>
             <% page = 2 %>
-            <hr style="width: 22%; border-width: 1.9px; margin-top: -2px; border-radius: 20%">
+            <hr style="width: 18%; border-width: 1.9px; margin-top: 5px; border-radius: 20%">
         <% } %>
         
         <% page-- %>
 
         <% if (logged) { %>
-            <br>
             <div class="listOptions">
                 <a href="/albumSearch" class="buttonStyle" style="color: #15333f; font-size: 1.7rem">Add Album</a> &nbsp
                 <a href="/userProfile/<%=list%>?page=<%=page%>&reorder=true" class="buttonStyle" style="color: #15333f; font-size: 1.7rem">Reorder/Remove</a> &nbsp
@@ -94,15 +90,17 @@
         <% } %>
 
         <% albumList.forEach(function (item) { %>
-            <% if (item.year === "") { %>
-                <p class="albumTitle" style="text-decoration: none"><%=item.position%>.<a href="/album/<%=item.albumID%>" class="albumTitle" style="margin-left: 25px"><%=item.title%></a></p>
-                <p class="albumTitle" style="margin-top: 5px; margin-left: 150px; text-decoration: none">Artist: </p>
-            <% } else { %>
-                <p class="albumTitle" style="text-decoration: none"><%=item.position%>.<a href="/album/<%=item.albumID%>" class="albumTitle" style="margin-left: 25px"><%=item.title%></a></p>
-                <p class="albumTitle" style="margin-top: 5px; margin-left: 150px; text-decoration: none">Artist: <%=item.artist%></p>
-                <p class="albumTitle" style="margin-top: 5px; margin-left: 150px; text-decoration: none">Release Year: <%=item.year%></p>
-            <% } %>
-
+            <div id="albumInfoList">
+                <% if (item.year === "") { %>
+                    <p class="albumTitle" style="text-decoration: none"><%=item.position%>.<a href="/album/<%=item.albumID%>" class="albumTitle" style="margin-left: 25px"><%=item.title%></a></p>
+                    <p class="albumTitle" style="margin-bottom: 0px; margin-left: 60px; text-decoration: none">Artist: <%=item.artist%></p>
+                <% } else { %>
+                    <p class="albumTitle" style="text-decoration: none"><%=item.position%>.<a href="/album/<%=item.albumID%>" class="albumTitle" style="margin-left: 25px"><%=item.title%></a></p>
+                    <p class="albumTitle" style="margin-bottom: 0px; margin-left: 60px; text-decoration: none">Artist: <%=item.artist%></p>
+                    <p class="albumTitle" style="margin-top: 0px; margin-left: 60px; text-decoration: none">Release Year: <%=item.year%></p>
+                <% } %>
+            </div>
+            
             <div id="albumEntry">
                 <img src=<%=item.img%> class=imgAlbum alt="[album art not available]">
                 <div id="albumTracks" class="hideScrollbar1 hideScrollbar2 trackList">

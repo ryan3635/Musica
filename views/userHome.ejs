@@ -2,6 +2,7 @@
     <%- include("header") %>
 
     <div id="toolbar">
+        <p>Musica</p>
         <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp &nbsp
         <a href="/userProfile/<%=list%>?page=1" class="buttonStyle">Your List</a> &nbsp &nbsp
         <a href="/account" class="buttonStyle">Account</a> &nbsp &nbsp
@@ -9,7 +10,6 @@
     </div>
     
     <div id="header">
-        <h1>Musica</h1>
         <% if (loggedIn) { %>
             <p class="message hidden">Successfully Logged In!</p>
         <% } %>
@@ -17,10 +17,9 @@
         <% if (googleDisplayname) { %>
             <p class="message hidden">Display Name Updated!</p>
         <% } %>
-        <hr>
         <h2>Your Feed</h2>
+        <hr style="width: 18%; border-width: 1.9px; margin-top: 2px">
     </div>
-    <hr style="width: 22%; border-width: 1.9px; margin-top: 2px">
 
     <div id="homeFlex">
         <!-- update home when someone creates a list, updates a list, shares a list publicly -->

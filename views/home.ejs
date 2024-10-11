@@ -2,20 +2,19 @@
     <%- include("header") %>
 
     <div id="toolbar">
+        <p>Musica</p>
         <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp &nbsp
         <a href="/login" class="buttonStyle">Login</a> &nbsp &nbsp
         <a href="/register" class="buttonStyle">Register</a>
     </div>
     
     <div id="header">
-        <h1>Musica</h1>
         <% if (loggedOut) { %>
             <p class="message hidden">Successfully Logged Out!</p>
         <% } %>
-        <hr>
         <h2>Public Feed</h2>
     </div>
-    <hr style="width: 22%; border-width: 1.9px; margin-top: 2px">
+    <hr style="width: 18%; border-width: 1.9px; margin-top: 2px">
 
     <%- include("footer") %>
 </div>

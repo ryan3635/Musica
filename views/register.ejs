@@ -2,11 +2,11 @@
     <%- include("header") %>
 
     <div id="toolbar">
+        <p>Musica</p>
         <a href="/" class="buttonStyle">Go Back</a>
     </div>
     
     <div id="header">
-        <h1>Musica</h1>
         <% if (error) { %>
             <p class="message hidden">One or More Fields Were Not Entered!</p>
         <% } %>
@@ -30,7 +30,8 @@
         <% if (displaynameSwear) { %>
             <p class="message hidden">Display Name Must Not Contain Swear Words nor Asterisks!</p>
         <% } %>
-        <hr>
+
+        <h2>Register</h2>
         
         <form action="/register" method="POST">
             <input type="email" name="username" id="username" placeholder="Email">
@@ -41,7 +42,7 @@
             <br>
             <input type="password" name="passwordNew2" id="passwordNew2" placeholder="Re-Enter New Password">
             <br>
-            <button type="submit" value="Register" class="buttonStyle" style="font-size: 2rem">Register</button>
+            <button type="submit" value="Register" class="buttonStyle" style="font-size: 1.8rem">Enter</button>
         </form>
 
         <hr style="width: 22%; border-width: 1.9px; margin-top: -15px">
