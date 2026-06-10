@@ -1,6 +1,5 @@
+<%- include("header") %>
 <div id="feedFlex">
-    <%- include("header") %>
-
     <div id="toolbar">
         <p>Musica</p>
         <% if (logged) { %>
@@ -43,7 +42,7 @@
             <button type="submit" class="buttonStyle" style="font-size: 2rem; margin-top: 10px">Search</button>
         </form>
 
-        <hr style="width: 22%; border-width: 1.9px; margin-top: -15px">
+        <hr style="width: 22%; border-width: 1.9px; margin-top: 7px">
         <br>
 
         <% if (!discogsSearch) { %>
@@ -54,5 +53,5 @@
             <a href="/albumSearch" class="buttonStyle" style="color: #15333f">Back to Info Search</a>
         <% } %>
     </div>
-    <%- include("footer") %>
 </div>
+<%- include("footer") %>

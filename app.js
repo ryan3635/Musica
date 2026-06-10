@@ -47,7 +47,7 @@ app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: {
+    cookie: {   //httpOnly: false, secure: true; once posted online (using https)
         httpOnly: true,
         secure: false
     }
@@ -59,7 +59,7 @@ const mongoose = require("mongoose");
 const mongodb = require("mongodb").MongoClient;
 const { Db } = require("mongodb");
 mongoose.set("strictQuery", false);
-mongoose.connect("mongodb://localhost:27017/musicaDB", {useNewUrlParser: true, useUnifiedTopology: true});  //update this when posted online
+mongoose.connect(process.env.MONGODB_URL, {useNewUrlParser: true, useUnifiedTopology: true});
 const User = require("./models/user");
 const Album = require("./models/album");
 
@@ -98,7 +98,6 @@ passport.use(new GoogleStrategy({
         });
     }
 ));
-
 
 
 app.get("/", function (req, res) {
