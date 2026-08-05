@@ -1093,6 +1093,7 @@ app.post("/userProfile/:displayName", function (req, res) {
                                         else if (newPos === currentPos) res.redirect(displayName + "?page=" + page + "&reorder=true&samePos=true");
                                         else {
                                             if (newPos > currentPos) {
+                                                //lower rank of album; other albums increase in rank
                                                 var newPositionArray = new Array();
                                                 for (i = currentPos; i <= newPos; i++) {
                                                     newPositionArray.push(i);
@@ -1108,6 +1109,7 @@ app.post("/userProfile/:displayName", function (req, res) {
                                                 });
                                             }
                                             else {
+                                                //increase rank of album; other albums decrease in rank
                                                 var newPositionArray = new Array();
                                                 for (i = currentPos; i >= newPos; i--) {
                                                     newPositionArray.push(i);

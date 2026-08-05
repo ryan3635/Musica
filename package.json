@@ -22,7 +22,7 @@
     "mongodb": "^4.13.0",
     "mongoose": "^6.8.3",
     "mongoose-findorcreate": "^3.0.0",
-    "nodemailer": "^8.0.10",
+    "nodemailer": "^9.0.4",
     "passport": "^0.6.0",
     "passport-google-oauth20": "^2.0.0",
     "passport-local": "^1.0.0",
