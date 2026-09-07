@@ -1,15 +1,15 @@
-<%- include("header") %>
+<%- include("partials/header") %>
 <div id="feedFlex">
     <div id="toolbar">
         <p>Musica</p>
         <% if (logged) { %>
             <a href="/" class="buttonStyle">Feed</a> &nbsp &nbsp
-            <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp &nbsp
+            <a href="/albumSearch" class="buttonStyle">Search</a> &nbsp &nbsp
             <a href="/userProfile/<%=list%>?page=1" class="buttonStyle">Your List</a> &nbsp &nbsp
             <a href="/account" class="buttonStyle">Account</a> &nbsp &nbsp
             <a href="/logout" class="buttonStyle">Log out</a>
         <% } else { %>
-            <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp &nbsp
+            <a href="/albumSearch" class="buttonStyle">Search</a> &nbsp &nbsp
             <a href="/" class="buttonStyle">Feed</a> &nbsp &nbsp
             <a href="/login" class="buttonStyle">Login</a> &nbsp &nbsp
             <a href="/register" class="buttonStyle">Register</a>
@@ -54,4 +54,4 @@
     </div>
 </div>
 <br>
-<%- include("footer") %>
+<%- include("partials/footer") %>

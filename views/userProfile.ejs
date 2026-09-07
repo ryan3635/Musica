@@ -1,16 +1,11 @@
-<%- include("header") %>
+<%- include("partials/header") %>
 <div id="feedFlex">
     <div id="toolbar">
         <p>Musica</p>
-        <a href="/userHome" class="buttonStyle">Feed</a> &nbsp &nbsp
-        <a href="/albumSearch" class="buttonStyle">Album Search</a> &nbsp &nbsp
         <% if (loggedToolbar) { %>
-            <a href="/userProfile/<%=yourList%>?page=1" class="buttonStyle">Your List</a> &nbsp &nbsp
-            <a href="/account" class="buttonStyle">Account</a> &nbsp &nbsp
-            <a href="/logout" class="buttonStyle">Log out</a>
+            <%- include("partials/toolbarUser") %>
         <% } else { %>
-            <a href="/login" class="buttonStyle">Login</a> &nbsp &nbsp
-            <a href="/register" class="buttonStyle">Register</a>
+            <%- include("partials/toolbarNonUser") %>
         <% } %>
     </div>
 
@@ -155,4 +150,4 @@
         <% } %>
     </div>
 </div>
-<%- include("footer") %>
+<%- include("partials/footer") %>
