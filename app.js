@@ -256,29 +256,26 @@ app.get("/passwordReset", function (req, res) {
     if (!req.isAuthenticated()) {
         var userID = req.query.userID;
         if (userID !== undefined) userID = validator.escape(userID);
+        var token = req.query.token;
+        if (token !== undefined) token = validator.escape(token);
 
-        User.findOne({"_id": userID}, {"_id": 0, "token": 1}, function (err, result) {
+        User.findOne({"_id": userID, token: token, awaitingReset: true, tokenExpire: {$gt: Date.now()}}, function (err, result) {
             if (err) console.log(err);
             else {
                 if (!result) res.redirect("/forget?tokenExpired=true");
                 else {
-                    var token = req.query.token;
-                    if (token !== undefined) token = validator.escape(token);
+                    var error = req.query.error;
+                    var duplicatePwError = req.query.duplicatePwError;
+                    if (error !== undefined) error = validator.escape(error);
+                    if (duplicatePwError !== undefined) duplicatePwError = validator.escape(duplicatePwError);
 
-                    if (result.token === token) {
-                        var error = req.query.error;
-                        var duplicatePwError = req.query.duplicatePwError;
-                        if (error !== undefined) error = validator.escape(error);
-                        if (duplicatePwError !== undefined) duplicatePwError = validator.escape(duplicatePwError);
-
-                        const reset = {
-                            error: error,
-                            duplicatePwError: duplicatePwError,
-                            userID: userID,
-                            token: token
-                        }
-                        res.render("passwordReset", reset);
-                    } else res.redirect("/forget?tokenExpired=true");
+                    const reset = {
+                        error: error,
+                        duplicatePwError: duplicatePwError,
+                        userID: userID,
+                        token: token
+                    }
+                    res.render("passwordReset", reset);
                 }
             }
         });
@@ -818,7 +815,7 @@ app.post("/passwordReset", function (req, res) {
         else {
             if (passwordNew1 !== passwordNew2) res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&duplicatePwError=true");
             else {
-                User.findOne({"_id": userID}, {token: token}, function (err, user) {
+                User.findOne({"_id": userID, token: token, awaitingReset: true, tokenExpire: {$gt: Date.now()}}, function (err, user) {
                     if (err) console.log(err);
                     else if (!user) res.redirect("/forget?tokenExpired=true");
                     else {
