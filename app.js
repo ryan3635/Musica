@@ -254,31 +254,34 @@ app.get("/forget", function (req, res) {
 
 app.get("/passwordReset", function (req, res) {
     if (!req.isAuthenticated()) {
-        var userID = req.query.userID;
-        if (userID !== undefined) userID = validator.escape(userID);
-        var token = req.query.token;
-        if (token !== undefined) token = validator.escape(token);
+        if (typeof req.query.userID === "string" && typeof req.query.token === "string" && req.query.userID && req.query.token) {
+            var userID = req.query.userID;
+            if (typeof userID === "string") userID = validator.escape(userID);
+            var token = req.query.token;
+            if (typeof token === "string") token = validator.escape(token);
 
-        User.findOne({"_id": userID, token: token, awaitingReset: true, tokenExpire: {$gt: Date.now()}}, function (err, result) {
-            if (err) console.log(err);
-            else {
-                if (!result) res.redirect("/forget?tokenExpired=true");
+            User.findOne({"_id": userID, token: token, awaitingReset: true, tokenExpire: {$gt: Date.now()}}, function (err, result) {
+                if (err) console.log(err);
                 else {
-                    var error = req.query.error;
-                    var duplicatePwError = req.query.duplicatePwError;
-                    if (error !== undefined) error = validator.escape(error);
-                    if (duplicatePwError !== undefined) duplicatePwError = validator.escape(duplicatePwError);
+                    if (!result) res.redirect("/forget?tokenExpired=true");
+                    else {
+                        var error = req.query.error;
+                        var duplicatePwError = req.query.duplicatePwError;
+                        if (error !== undefined) error = validator.escape(error);
+                        if (duplicatePwError !== undefined) duplicatePwError = validator.escape(duplicatePwError);
 
-                    const reset = {
-                        error: error,
-                        duplicatePwError: duplicatePwError,
-                        userID: userID,
-                        token: token
+                        const reset = {
+                            error: error,
+                            duplicatePwError: duplicatePwError,
+                            userID: userID,
+                            token: token
+                        }
+                        res.render("passwordReset", reset);
                     }
-                    res.render("passwordReset", reset);
                 }
-            }
-        });
+            });
+        }
+        else res.redirect("/forget?tokenExpired=true");
     }
     else res.redirect("/loggedIn");
 });
@@ -803,41 +806,44 @@ app.post("/forget", function (req, res) {
 
 app.post("/passwordReset", function (req, res) {
     if (!req.isAuthenticated()) {
-        const userID = validator.escape(req.query.userID);
-        const token = validator.escape(req.query.token);
-        var passwordNew1 = req.body.passwordNew1;
-        var passwordNew2 = req.body.passwordNew2;
+        if (typeof req.query.userID === "string" && typeof req.query.token === "string" && req.query.userID && req.query.token) {
+            const userID = req.query.userID;
+            const token = req.query.token;
+            var passwordNew1 = req.body.passwordNew1;
+            var passwordNew2 = req.body.passwordNew2;
 
-        if (passwordNew1 !== undefined) passwordNew1 = validator.escape(passwordNew1);
-        if (passwordNew2 !== undefined) passwordNew2 = validator.escape(passwordNew2);
+            if (passwordNew1 !== undefined) passwordNew1 = validator.escape(passwordNew1);
+            if (passwordNew2 !== undefined) passwordNew2 = validator.escape(passwordNew2);
 
-        if (passwordNew1 === "" || passwordNew2 === "") res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&error=true");
-        else {
-            if (passwordNew1 !== passwordNew2) res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&duplicatePwError=true");
+            if (passwordNew1 === "" || passwordNew2 === "") res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&error=true");
             else {
-                User.findOne({"_id": userID, token: token, awaitingReset: true, tokenExpire: {$gt: Date.now()}}, function (err, user) {
-                    if (err) console.log(err);
-                    else if (!user) res.redirect("/forget?tokenExpired=true");
-                    else {
-                        bcrypt.genSalt(10, function (err, salt) {
-                            if (err) console.log(err);
-                            else {
-                                bcrypt.hash(passwordNew2, salt, function (err, hash) {
-                                    if (err) console.log(err);
-                                    else {
-                                        User.updateOne({"_id": userID}, {$set: {password: hash}, 
+                if (passwordNew1 !== passwordNew2) res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&duplicatePwError=true");
+                else {
+                    User.findOne({"_id": userID, token: token, awaitingReset: true, tokenExpire: {$gt: Date.now()}}, function (err, user) {
+                        if (err) console.log(err);
+                        else if (!user) res.redirect("/forget?tokenExpired=true");
+                        else {
+                            bcrypt.genSalt(10, function (err, salt) {
+                                if (err) console.log(err);
+                                else {
+                                    bcrypt.hash(passwordNew2, salt, function (err, hash) {
+                                        if (err) console.log(err);
+                                        else {
+                                            User.updateOne({"_id": userID}, {$set: {password: hash}, 
                                                                 $unset: {token: 1, tokenExpire: 1, awaitingReset: 1}}, function (err, result) {
-                                            if (err) console.log(err);
-                                            else res.redirect("/login?pwReset=true");
-                                        });
-                                    }
-                                });
-                            }
-                        });
-                    }
-                });
+                                                if (err) console.log(err);
+                                                else res.redirect("/login?pwReset=true");
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
             }
         }
+        else res.redirect("/forget?tokenExpired=true");
     }
     else res.redirect("/loggedIn");
 });
