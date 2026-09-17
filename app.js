@@ -707,12 +707,9 @@ app.post("/register", function (req, res) {
     var passwordNew1 = req.body.passwordNew1;
     var passwordNew2 = req.body.passwordNew2;
 
-    if (username !== undefined) username = validator.escape(username);
-    if (displayname !== undefined) displayname = validator.escape(displayname);
-    if (passwordNew1 !== undefined) passwordNew1 = validator.escape(passwordNew1);
-    if (passwordNew2 !== undefined) passwordNew2 = validator.escape(passwordNew2);
-
-    if (username === "" || displayname === "" || passwordNew1 === "" || passwordNew2 === "") res.redirect("/register?error=true");
+    if (typeof username !== "string" || !username || typeof displayname !== "string" || !displayname || typeof passwordNew1 !== "string" || !passwordNew1 || 
+        typeof passwordNew2 !== "string" || !passwordNew2) res.redirect("/register?error=true");
+    else if (!validator.isEmail(username)) res.redirect("/register?error=true");
     else if (req.isAuthenticated()) res.redirect("/loggedIn");
     else {
         if (passwordNew1 !== passwordNew2) {
@@ -760,9 +757,8 @@ app.post("/register", function (req, res) {
 
 app.post("/forget", function (req, res) {
     var username = req.body.username;
-    if (username !== undefined) username = validator.escape(username);
 
-    if (username === "") res.redirect("/forget?error=true")
+    if (typeof username !== "string" || !username) res.redirect("/forget?error=true");
     else {
         User.countDocuments({username: username}, function (err, count) {
             if (err) console.log(err);
@@ -812,10 +808,7 @@ app.post("/passwordReset", function (req, res) {
             var passwordNew1 = req.body.passwordNew1;
             var passwordNew2 = req.body.passwordNew2;
 
-            if (passwordNew1 !== undefined) passwordNew1 = validator.escape(passwordNew1);
-            if (passwordNew2 !== undefined) passwordNew2 = validator.escape(passwordNew2);
-
-            if (passwordNew1 === "" || passwordNew2 === "") res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&error=true");
+            if (typeof passwordNew1 !== "string" || typeof passwordNew2 !== "string" || !passwordNew1 || !passwordNew2) res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&error=true");
             else {
                 if (passwordNew1 !== passwordNew2) res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&duplicatePwError=true");
                 else {
@@ -858,17 +851,11 @@ app.post("/change/:type", function (req, res) {
         var passwordNew1 = req.body.passwordNew1;
         var passwordNew2 = req.body.passwordNew2;
 
-        if (displayname !== undefined) displayname = validator.escape(displayname);
-        if (email !== undefined) email = validator.escape(email);
-        if (password !== undefined) password = validator.escape(password);
-        if (passwordNew1 !== undefined) passwordNew1 = validator.escape(passwordNew1);
-        if (passwordNew2 !== undefined) passwordNew2 = validator.escape(passwordNew2);
-
         if (type === "displayname") {
             const regex = /^[a-zA-Z0-9]+$/;
             const validName = regex.test(displayname);
             if (req.user.googleId === undefined) {
-                if (displayname === "" || password === "") res.redirect("/change/displayname?error=true");
+                if (typeof displayname !== "string" || !displayname || typeof password !== "string" || !password) res.redirect("/change/displayname?error=true");
                 else {
                     displayname = filter.censor(displayname);
                     User.countDocuments({"displayname": displayname}, function (err, count) {
@@ -898,7 +885,7 @@ app.post("/change/:type", function (req, res) {
                 }
             }
             else {
-                if (displayname === "") res.redirect("/change/displayname?error=true");
+                if (typeof displayname != "string" || !displayname) res.redirect("/change/displayname?error=true");
                 else {
                     displayname = filter.censor(displayname);
                     User.countDocuments({"displayname": displayname}, function (err, count) {
@@ -919,7 +906,8 @@ app.post("/change/:type", function (req, res) {
 
         else if (type === "email") {
             if (req.user.googleId !== undefined) res.redirect("/account");
-            if (email === "" || password === "") res.redirect("/change/email?error=true");
+            else if (typeof email !== "string" || !email || typeof password !== "string" || !password) res.redirect("/change/email?error=true");
+            else if (!validator.isEmail(email)) res.redirect("/change/email?error=true");
             else {
                 User.countDocuments({"username": email}, function (err, count) {
                     if (err) console.log(err);
@@ -947,7 +935,7 @@ app.post("/change/:type", function (req, res) {
 
         else if (type === "password") {
             if (req.user.googleId !== undefined) res.redirect("/account");
-            if (password === "" || passwordNew1 === "" || passwordNew2 === "") res.redirect("/change/password?error=true");
+            else if (typeof password !== "string" || !password || typeof passwordNew1 !== "string" || !passwordNew1 || typeof passwordNew2 !== "string" || !passwordNew2) res.redirect("/change/password?error=true");
             else {
                 User.findOne({"_id": req.user._id}, function (err, user) {
                     if (err) console.log(err);
