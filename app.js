@@ -259,8 +259,9 @@ app.get("/passwordReset", function (req, res) {
             if (typeof userID === "string") userID = validator.escape(userID);
             var token = req.query.token;
             if (typeof token === "string") token = validator.escape(token);
+            var hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-            User.findOne({"_id": userID, token: token, awaitingReset: true, tokenExpire: {$gt: Date.now()}}, function (err, result) {
+            User.findOne({"_id": userID, token: hashedToken, awaitingReset: true, tokenExpire: {$gt: Date.now()}}, function (err, result) {
                 if (err) console.log(err);
                 else {
                     if (!result) res.redirect("/forget?tokenExpired=true");
@@ -771,19 +772,20 @@ app.post("/forget", function (req, res) {
                         crypto.randomBytes(20, function (err, bytes) {
                             if (err) console.log(err);
                             else {
-                                token = bytes.toString('hex');
                                 const expireTime = Date.now() + 600000;
+                                token = bytes.toString('hex');
+                                var hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-                                User.updateOne({"_id": id}, {"token": token, "tokenExpire": expireTime, "awaitingReset": true}, function (err, result) {
+                                User.updateOne({"_id": id}, {"token": hashedToken, "tokenExpire": expireTime, "awaitingReset": true}, function (err, result) {
                                     if (err) console.log(err);
                                     else {
                                         const email = {
-                                            from: process.env.NODEMAILER_USER,
-                                            to: username,
-                                            subject: "Musica Password Recovery",
-                                            //update this html field when posted online
-                                            html: "<h2>Password Reset</h2><p>Click the link below to reset your Musica user password. If you did not request this, please ingore this email.</p><br><a href='http://localhost:3000/passwordReset?userID=" + id._id + "&token=" + token + "'>Musica Password Reset</a>" 
-                                        };
+                                        from: process.env.NODEMAILER_USER,
+                                        to: username,
+                                        subject: "Musica Password Recovery",
+                                        //update this html field when posted online
+                                        html: "<h2>Password Reset</h2><p>Click the link below to reset your Musica account password. If you did not request this, please ingore this email.</p><br><a href='http://localhost:3000/passwordReset?userID=" + id._id + "&token=" + token + "'>Musica Password Reset</a>"
+                                        }
                                         emailer.sendMail(email, function (err, info) {
                                             if (err) console.log(err);
                                         });
@@ -804,15 +806,16 @@ app.post("/passwordReset", function (req, res) {
     if (!req.isAuthenticated()) {
         if (typeof req.query.userID === "string" && typeof req.query.token === "string" && req.query.userID && req.query.token) {
             const userID = req.query.userID;
-            const token = req.query.token;
             var passwordNew1 = req.body.passwordNew1;
             var passwordNew2 = req.body.passwordNew2;
+            const token = req.query.token;
+            var hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
             if (typeof passwordNew1 !== "string" || typeof passwordNew2 !== "string" || !passwordNew1 || !passwordNew2) res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&error=true");
             else {
                 if (passwordNew1 !== passwordNew2) res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&duplicatePwError=true");
                 else {
-                    User.findOne({"_id": userID, token: token, awaitingReset: true, tokenExpire: {$gt: Date.now()}}, function (err, user) {
+                    User.findOne({"_id": userID, token: hashedToken, awaitingReset: true, tokenExpire: {$gt: Date.now()}}, function (err, user) {
                         if (err) console.log(err);
                         else if (!user) res.redirect("/forget?tokenExpired=true");
                         else {
