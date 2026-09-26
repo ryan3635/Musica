@@ -107,9 +107,6 @@ app.get("/", function (req, res) {
             var loggedIn = req.query.loggedIn;
             var googleDisplayname = req.query.googleDisplayname;
 
-            if (loggedIn !== undefined) loggedIn = validator.escape(loggedIn);
-            if (googleDisplayname !== undefined) googleDisplayname = validator.escape(googleDisplayname);
-
             const logged = {
                 loggedIn: loggedIn,
                 googleDisplayname: googleDisplayname,
@@ -127,10 +124,6 @@ app.get("/login", function (req, res) {
         var error = req.query.error;
         var accCreated = req.query.accCreated;
         var pwReset = req.query.pwReset;
-
-        if (error !== undefined) error = validator.escape(error);
-        if (accCreated !== undefined) accCreated = validator.escape(accCreated);
-        if (pwReset !== undefined) pwReset = validator.escape(pwReset);
 
         const errCheck = {
             page: "Login",
@@ -153,13 +146,6 @@ app.get("/register", function (req, res) {
         var duplicateDisplayname = req.query.duplicateDisplayname;
         var displaynameError = req.query.displaynameError;
         var displaynameSwear = req.query.displaynameSwear;
-
-        if (error !== undefined) error = validator.escape(error);
-        if (duplicatePwError !== undefined) duplicatePwError = validator.escape(duplicatePwError);
-        if (duplicateEmail !== undefined) duplicateEmail = validator.escape(duplicateEmail);
-        if (duplicateDisplayname !== undefined) duplicateDisplayname = validator.escape(duplicateDisplayname);
-        if (displaynameError !== undefined) displaynameError = validator.escape(displaynameError);
-        if (displaynameSwear !== undefined) displaynameSwear = validator.escape(displaynameSwear);
 
         const errCheck = {
             page: "Register",
@@ -198,10 +184,6 @@ app.get("/account", function (req, res) {
         var emailUpdate = req.query.emailUpdate;
         var passwordUpdate = req.query.passwordUpdate;
 
-        if (displaynameUpdate !== undefined) displaynameUpdate = validator.escape(displaynameUpdate);
-        if (emailUpdate !== undefined) emailUpdate = validator.escape(emailUpdate);
-        if (passwordUpdate !== undefined) passwordUpdate = validator.escape(passwordUpdate);
-
         if (req.user.googleId === undefined) {
             const message = {
                 displaynameUpdate: displaynameUpdate,
@@ -234,11 +216,6 @@ app.get("/forget", function (req, res) {
         var noEmail = req.query.noEmail;
         var tokenExpired = req.query.tokenExpired;
 
-        if (entered !== undefined) entered = validator.escape(entered);
-        if (error !== undefined) error = validator.escape(error);
-        if (noEmail !== undefined) noEmail = validator.escape(noEmail);
-        if (tokenExpired !== undefined) tokenExpired = validator.escape(tokenExpired);
-
         const message = {
             page: "Forget",
             entered: entered,
@@ -256,9 +233,7 @@ app.get("/passwordReset", function (req, res) {
     if (!req.isAuthenticated()) {
         if (typeof req.query.userID === "string" && typeof req.query.token === "string" && req.query.userID && req.query.token) {
             var userID = req.query.userID;
-            if (typeof userID === "string") userID = validator.escape(userID);
             var token = req.query.token;
-            if (typeof token === "string") token = validator.escape(token);
             var hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
             User.findOne({"_id": userID, token: hashedToken, awaitingReset: true, tokenExpire: {$gt: Date.now()}}, function (err, result) {
@@ -268,8 +243,6 @@ app.get("/passwordReset", function (req, res) {
                     else {
                         var error = req.query.error;
                         var duplicatePwError = req.query.duplicatePwError;
-                        if (error !== undefined) error = validator.escape(error);
-                        if (duplicatePwError !== undefined) duplicatePwError = validator.escape(duplicatePwError);
 
                         const reset = {
                             error: error,
@@ -289,7 +262,6 @@ app.get("/passwordReset", function (req, res) {
 
 
 app.get("/change/:type", function (req, res) {
-    const type = validator.escape(req.params.type);
     if (req.isAuthenticated()) {
         var error = req.query.error;
         var pwError = req.query.pwError;
@@ -298,14 +270,7 @@ app.get("/change/:type", function (req, res) {
         var duplicateDisplayname = req.query.duplicateDisplayname;
         var displaynameError = req.query.displaynameError;
         var displaynameSwear = req.query.displaynameSwear;
-
-        if (error !== undefined) error = validator.escape(error);
-        if (pwError !== undefined) pwError = validator.escape(pwError);
-        if (duplicatePwError !== undefined) duplicatePwError = validator.escape(duplicatePwError);
-        if (duplicateEmail !== undefined) duplicateEmail = validator.escape(duplicateEmail);
-        if (duplicateDisplayname !== undefined) duplicateDisplayname = validator.escape(duplicateDisplayname);
-        if (displaynameError !== undefined) displaynameError = validator.escape(displaynameError);
-        if (displaynameSwear !== undefined) displaynameSwear = validator.escape(displaynameSwear);
+        const type = req.params.type;
 
         if (type === "displayname") {
             if (req.user.googleId === undefined) {
@@ -398,13 +363,9 @@ app.get("/userHome", function (req, res) {
         if (req.user.displayname === undefined) res.redirect("/change/displayname");
         else {
             var displayName = req.params.displayName;
-            if (displayName !== undefined) displayName = validator.escape(displayName);
 
             var loggedIn = req.query.loggedIn;
             var googleDisplayname = req.query.googleDisplayname;
-
-            if (loggedIn !== undefined) loggedIn = validator.escape(loggedIn);
-            if (googleDisplayname !== undefined) googleDisplayname = validator.escape(googleDisplayname);
 
             const logged = {
                 loggedIn: loggedIn,
@@ -427,16 +388,13 @@ app.get("/userProfile", function (req, res) {
 app.get("/userProfile/:displayName", function (req, res) {
     var displayName = req.params.displayName;
     const yourList = req.user.displayName;
-    if (displayName !== undefined || displayName === "") displayName = validator.escape(displayName);
-    else res.redirect("/userProfile");
+
     User.findOne({displayname: displayName}, function (err, userId) {
         if (err) console.log(err);
         else if (!userId) res.redirect("/");
         else {
             const userID = userId._id;
             var page = req.query.page;
-            if (page !== undefined) page = validator.escape(page);
-
             const regex = /^[0-9]+$/;
             const validPage = regex.test(page);
             if (page === undefined || validPage === false) res.redirect("/userProfile/" + displayName + "?page=1");
@@ -463,15 +421,6 @@ app.get("/userProfile/:displayName", function (req, res) {
                                     var samePos = req.query.samePos;
                                     var goto = req.query.goto;
                                     var gotoError = req.query.gotoError;
-
-                                    if (added !== undefined) added = validator.escape(added);
-                                    if (removed !== undefined) removed = validator.escape(removed);
-                                    if (reordered !== undefined) reordered = validator.escape(reordered);
-                                    if (reorder !== undefined) reorder = validator.escape(reorder);
-                                    if (reorderError !== undefined) reorderError = validator.escape(reorderError);
-                                    if (samePos !== undefined) samePos = validator.escape(samePos);
-                                    if (goto !== undefined) goto = validator.escape(goto);
-                                    if (gotoError !== undefined) gotoError = validator.escape(gotoError);
 
                                     var logged = false;
                                     if (req.user) {
@@ -538,9 +487,6 @@ app.get("/albumSearch", function (req, res) {
     var notFound = req.query.notFound;
     var error = req.query.error;
     var discogsSearch = req.query.discogsSearch;
-    if (notFound !== undefined) notFound = validator.escape(notFound);
-    if (error !== undefined) error = validator.escape(error);
-    if (discogsSearch !== undefined) discogsSearch = validator.escape(discogsSearch);
 
     if (req.isAuthenticated()) {
         res.render("albumSearch", {
@@ -564,7 +510,6 @@ app.get("/albumSearch", function (req, res) {
 
 app.get("/album/:albumId", function (req, res) {
     var album = req.params.albumId;
-    if (album !== undefined) album = validator.escape(album);
 
     var artistName = "";
     var albumName = "";
@@ -651,9 +596,7 @@ app.get("/album/:albumId", function (req, res) {
 
                 if (req.isAuthenticated()) {
                     var addAlbum = req.body.add;
-                    if (addAlbum !== undefined) addAlbum = validator.escape(addAlbum);
                     var duplicate = req.query.duplicate;
-                    if (duplicate !== undefined) duplicate = validator.escape(duplicate);
 
                     setTimeout(function () {
                         res.render("album", {
@@ -674,7 +617,6 @@ app.get("/album/:albumId", function (req, res) {
                 
                 else {
                     var duplicate = req.query.duplicate;
-                    if (duplicate !== undefined) duplicate = validator.escape(duplicate);
 
                     setTimeout(function () {
                         res.render("album", {
@@ -847,12 +789,12 @@ app.post("/passwordReset", function (req, res) {
 
 app.post("/change/:type", function (req, res) {
     if (req.isAuthenticated()) {
-        var type = validator.escape(req.params.type);
         var displayname = req.body.displayname;
         var email = req.body.email;
         var password = req.body.password;
         var passwordNew1 = req.body.passwordNew1;
         var passwordNew2 = req.body.passwordNew2;
+        var type = req.params.type;
 
         if (type === "displayname") {
             const regex = /^[a-zA-Z0-9]+$/;
@@ -975,17 +917,11 @@ app.post("/change/:type", function (req, res) {
 
 app.post("/userProfile/:displayName", function (req, res) {
     var displayName = req.params.displayName;
-    if (displayName !== undefined) displayName = validator.escape(displayName);
     
     var end = req.body.end;
     var goto = req.body.goto;
     var albumRemove = req.body.remove;
     var reorderedAlbum = req.body.reordered;
-
-    if (end !== undefined) end = validator.escape(end);
-    if (goto !== undefined) goto = validator.escape(goto);
-    if (albumRemove !== undefined) albumRemove = validator.escape(albumRemove);
-    if (reorderedAlbum !== undefined) reorderedAlbum = validator.escape(reorderedAlbum);
 
     User.findOne({displayname: displayName}, function (err, userId) {
         if (err) console.log(err);
@@ -1006,7 +942,6 @@ app.post("/userProfile/:displayName", function (req, res) {
             //Page Select
             else if (goto === "goto") {
                 var gotoPage = req.body.gotoPage;
-                if (gotoPage !== undefined) gotoPage = validator.escape(gotoPage);
 
                 gotoPage = parseInt(gotoPage);
                 Album.findOne({"userID": userID, albumID: albumRemove}, {position: 1}, function (err, albumPos) {
@@ -1065,8 +1000,6 @@ app.post("/userProfile/:displayName", function (req, res) {
                 else if (userId.displayname !== req.user.displayname) res.redirect(displayName + "?page=1");
                 else {
                     var newPos = req.body.newPos;
-                    if (newPos !== undefined) newPos = validator.escape(newPos);
-    
                     newPos = parseInt(newPos);
                     Album.find({"userID": userID, albumID: reorderedAlbum}, {albumID: 1, position: 1}, function (err, id) {
                         if (err) {
@@ -1143,11 +1076,6 @@ app.post("/albumSearch", function (req, res) {
     var albumYear = req.body.year;
     var discogsId = req.body.discogsId;
 
-    if (artistName !== undefined) artistName = validator.escape(artistName);
-    if (albumName !== undefined) albumName = validator.escape(albumName);
-    if (albumYear !== undefined) albumYear = validator.escape(albumYear);
-    if (discogsId !== undefined) discogsId = validator.escape(discogsId);
-
     if (artistName === "" && albumName === "" && albumYear === "") res.redirect("/albumSearch?error=true");
 
     else {
@@ -1171,9 +1099,6 @@ app.post("/albumSearch", function (req, res) {
     
         else {
             if (artistName === "" && albumName === "" && albumYear === "") res.redirect("/albumSearch?error=true");
-            if (albumName.includes("&#x27;")) albumName = albumName.replace("&#x27;", "'");
-            if (artistName.includes("&#x27;")) artistName = artistName.replace("&#x27;", "'");
-
             db.search({artist: artistName, release_title: albumName, year: albumYear, type: "master"}).then(function (searchResult) {
                 var albumID1 = 99999999999999;
                 var albumID2 = 99999999999999;
@@ -1223,7 +1148,6 @@ app.post("/albumSearch", function (req, res) {
 app.post("/album/:albumId", function (req, res) {
     if (req.isAuthenticated()) {
         var album = req.params.albumId;
-        if (album !== undefined) album = validator.escape(album);
     
         Album.countDocuments({"userID": req.user._id, "albumID": album}, function (err, result) {
             if (err) console.log(err);
@@ -1280,8 +1204,6 @@ app.post("/album/:albumId", function (req, res) {
                         }
     
                         var addAlbum = req.body.add;
-                        if (addAlbum !== undefined) addAlbum = validator.escape(addAlbum);
-
                         if (addAlbum === "added") {
                             Album.countDocuments({"userID": req.user._id}, function (err, count) {
                                 if (err) console.log(err);
