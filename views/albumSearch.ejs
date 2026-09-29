@@ -3,14 +3,9 @@
     <div id="toolbar">
         <p>Musica</p>
         <% if (logged) { %>
-            <a href="/" class="buttonStyle">Feed</a> &nbsp &nbsp
-            <a href="/userProfile/<%=list%>?page=1" class="buttonStyle">Your List</a> &nbsp &nbsp
-            <a href="/account" class="buttonStyle">Account</a> &nbsp &nbsp
-            <a href="/logout" class="buttonStyle">Log out</a>
+            <%- include("partials/toolbarUser") %>
         <% } else { %>
-            <a href="/" class="buttonStyle">Feed</a> &nbsp &nbsp
-            <a href="/login" class="buttonStyle">Login</a> &nbsp &nbsp
-            <a href="/register" class="buttonStyle">Register</a>
+            <%- include("partials/toolbarNonUser") %>
         <% } %>
     </div>
 

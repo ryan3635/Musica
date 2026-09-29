@@ -78,9 +78,9 @@ passport.use(new LocalStrategy (function (username, password, done) {
         if (err) return done(err);
         else if (!user) return done(null, false);
 
-        bcrypt.compare(password, user.password, function (err, res) {
+        bcrypt.compare(password, user.password, function (err, result) {
             if (err) return done(err);
-            else if (res === false) return done(null, false);
+            else if (result === false) return done(null, false);
             return done(null, user);
         });
     });
@@ -98,6 +98,16 @@ passport.use(new GoogleStrategy({
         });
     }
 ));
+
+app.get("/auth/google",
+    passport.authenticate('google', {scope: ["profile"]})
+);
+
+app.get("/auth/google/userHome",
+    passport.authenticate('google', {failureRedirect: "/login"}),
+    function (req, res) {
+        res.redirect("/userHome");
+});
 
 
 app.get("/", function (req, res) {
@@ -346,24 +356,10 @@ app.get("/change/:type", function (req, res) {
 });
 
 
-app.get("/auth/google",
-    passport.authenticate('google', {scope: ["profile"]})
-);
-
-
-app.get("/auth/google/userHome",
-    passport.authenticate('google', {failureRedirect: "/login"}),
-    function (req, res) {
-        res.redirect("/userHome");
-});
-
-
 app.get("/userHome", function (req, res) {
     if (req.isAuthenticated()) {
         if (req.user.displayname === undefined) res.redirect("/change/displayname");
         else {
-            var displayName = req.params.displayName;
-
             var loggedIn = req.query.loggedIn;
             var googleDisplayname = req.query.googleDisplayname;
 
@@ -387,7 +383,7 @@ app.get("/userProfile", function (req, res) {
 
 app.get("/userProfile/:displayName", function (req, res) {
     var displayName = req.params.displayName;
-    const yourList = req.user.displayName;
+    const yourList = req.user ? req.user.displayname : undefined;
 
     User.findOne({displayname: displayName}, function (err, userId) {
         if (err) console.log(err);
@@ -397,8 +393,8 @@ app.get("/userProfile/:displayName", function (req, res) {
             var page = req.query.page;
             const regex = /^[0-9]+$/;
             const validPage = regex.test(page);
-            if (page === undefined || validPage === false) res.redirect("/userProfile/" + displayName + "?page=1");
 
+            if (page === undefined || validPage === false) res.redirect("/userProfile/" + displayName + "?page=1");
             else {
                 const albums = ((page - 1) * 10) + 1;
                 Album.find({"position": {$gte: albums}, "userID": userID}, null, {sort: {position: 1}}, function (err, results) {
@@ -1191,18 +1187,18 @@ app.post("/album/:albumId", function (req, res) {
                                 if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
                                     trackNumber++;
                                     if (data.tracklist[i].duration === '') {
-                                        trackNumbers.push(trackNumber)
+                                        trackNumbers.push(trackNumber);
                                         tracklist.push(data.tracklist[i].title);
                                     }
                                     else {
-                                        trackNumbers.push(trackNumber)
+                                        trackNumbers.push(trackNumber);
                                         tracklist.push(data.tracklist[i].title);
                                         trackLength.push(data.tracklist[i].duration);
                                     }
                                 }
                             }
                         }
-    
+
                         var addAlbum = req.body.add;
                         if (addAlbum === "added") {
                             Album.countDocuments({"userID": req.user._id}, function (err, count) {
