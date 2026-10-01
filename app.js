@@ -59,6 +59,7 @@ const mongoose = require("mongoose");
 const mongodb = require("mongodb").MongoClient;
 const { Db } = require("mongodb");
 mongoose.set("strictQuery", false);
+mongoose.set('sanitizeFilter', true);
 mongoose.connect(process.env.MONGODB_URL, {useNewUrlParser: true, useUnifiedTopology: true});
 const User = require("./models/user");
 const Album = require("./models/album");
@@ -74,6 +75,7 @@ passport.deserializeUser (function (id, done) {
 });
 
 passport.use(new LocalStrategy (function (username, password, done) {
+    if (typeof username !== "string" || typeof password !== "string") return done(null, false);
     User.findOne({username: username}, function (err, user) {
         if (err) return done(err);
         else if (!user) return done(null, false);
@@ -246,7 +248,7 @@ app.get("/passwordReset", function (req, res) {
             var token = req.query.token;
             var hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-            User.findOne({"_id": userID, token: hashedToken, awaitingReset: true, tokenExpire: {$gt: Date.now()}}, function (err, result) {
+            User.findOne({"_id": userID, token: hashedToken, awaitingReset: true, tokenExpire: mongoose.trusted({$gt: Date.now()})}, function (err, result) {
                 if (err) console.log(err);
                 else {
                     if (!result) res.redirect("/forget?tokenExpired=true");
@@ -397,7 +399,7 @@ app.get("/userProfile/:displayName", function (req, res) {
             if (page === undefined || validPage === false) res.redirect("/userProfile/" + displayName + "?page=1");
             else {
                 const albums = ((page - 1) * 10) + 1;
-                Album.find({"position": {$gte: albums}, "userID": userID}, null, {sort: {position: 1}}, function (err, results) {
+                Album.find({"position": mongoose.trusted({$gte: albums}), "userID": userID}, null, {sort: {position: 1}}, function (err, results) {
                     if (err) console.log(err);
                     else {
                         Album.countDocuments({"userID": userID}, function (err, count) {
@@ -753,7 +755,7 @@ app.post("/passwordReset", function (req, res) {
             else {
                 if (passwordNew1 !== passwordNew2) res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&duplicatePwError=true");
                 else {
-                    User.findOne({"_id": userID, token: hashedToken, awaitingReset: true, tokenExpire: {$gt: Date.now()}}, function (err, user) {
+                    User.findOne({"_id": userID, token: hashedToken, awaitingReset: true, tokenExpire: mongoose.trusted({$gt: Date.now()})}, function (err, user) {
                         if (err) console.log(err);
                         else if (!user) res.redirect("/forget?tokenExpired=true");
                         else {
@@ -964,7 +966,7 @@ app.post("/userProfile/:displayName", function (req, res) {
                     Album.findOne({"userID": userID, albumID: albumRemove}, {position: 1}, function (err, albumPos) {
                         if (err) console.log(err);
                         else {
-                            Album.updateMany({"userID": userID, "position": {$gt: albumPos.position}}, {$inc: {position: -1}}, function (err, result) {
+                            Album.updateMany({"userID": userID, "position": mongoose.trusted({$gt: albumPos.position})}, {$inc: {position: -1}}, function (err, result) {
                                 if (err) console.log(err);
                                 else {
                                     Album.deleteOne({"userID": userID, albumID: albumRemove}, function (err, result) {
