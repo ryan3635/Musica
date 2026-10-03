@@ -681,8 +681,13 @@ app.post("/register", function (req, res) {
                                                 password: hash,
                                                 displayname: displayname,
                                             });
-                                            newUser.save();
-                                            res.redirect("/login?accCreated=true");
+                                            newUser.save(function (err) {
+                                                if (err) {
+                                                    console.log(err);
+                                                    res.redirect("/register?error=true");
+                                                }
+                                                else res.redirect("/login?accCreated=true");
+                                            });
                                         }
                                     });
                                 }
@@ -1218,11 +1223,16 @@ app.post("/album/:albumId", function (req, res) {
                                         trackLength: trackLength,
                                         position: count + 1
                                     });
-                                    albumAdd.save();
-                                    setTimeout(function () {
-                                        const page = Math.trunc(count/10);
-                                        res.redirect("/userProfile/" + req.user.displayname + "?page=" + (page + 1) + "&added=true");
-                                    }, 1250);
+                                    albumAdd.save(function (err) {
+                                        if (err) {
+                                            console.log(err);
+                                            res.redirect("/albumSearch?notFound=true")
+                                        }
+                                        else {
+                                            const page = Math.trunc(count/10);
+                                            res.redirect("/userProfile/" + req.user.displayname + "?page=" + (page + 1) + "&added=true");
+                                        }
+                                    });
                                 }
                             });
                         }
