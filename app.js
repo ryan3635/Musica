@@ -508,7 +508,6 @@ app.get("/albumSearch", function (req, res) {
 
 app.get("/album/:albumId", function (req, res) {
     var album = req.params.albumId;
-
     var artistName = "";
     var albumName = "";
     var year = "";
@@ -518,123 +517,124 @@ app.get("/album/:albumId", function (req, res) {
     var videoMap = new Map();
     var genreAlbum = new Array();
     var tracklist = new Array();
-
-    db.getMaster(album, function(err, data) {
-        if (err) {
-            console.log(err);
-            res.redirect("/albumSearch?notFound=true");
-        }
-
-        else {
-            if (data.artists !== undefined) {
-                artistName = data.artists[0].name;
-                albumName = data.title;
-
-                const censoredAlbums = require("./scripts/censoredAlbums");
-                if (censoredAlbums.includes(parseInt(album))) albumArt = "/censored.png";
-                else if (album == "24535" && data.images?.[5]?.uri !== undefined) albumArt = data.images[5].uri; //alternate album cover
-                else if (data.images?.[0]?.uri !== undefined) albumArt = data.images[0].uri;
-        
-                if (data.year === 0 || undefined) year = "";
-                else year = data.year;
-
-                if (data.videos !== undefined) {
-                    for (i = 0; i < data.videos.length; i++) {
-                        const artist = artistName + " - ";
-                        const artistEnd = " - " + artistName;
-                        const title = data.videos[i].title;
-                        var vidTitle = "";
     
-                        if (title.startsWith(artist) || title.startsWith(artistName + " – ") || title.startsWith(artist.toLowerCase()) || title.startsWith(artistName.toLowerCase() + " – ")) {
-                            vidTitle = title.slice(artist.length, title.length);
-                            videoTitle.push(vidTitle);
-                            videoLink.push(data.videos[i].uri);
-                        }
-                        else if (title.endsWith(artistEnd) || title.endsWith(" – " + artistName) || title.endsWith(artistEnd.toLowerCase()) || title.endsWith(" – " + artistName.toLowerCase())) {
-                            vidTitle = title.slice(0, title.length - artistEnd.length);
-                            videoTitle.push(vidTitle);
-                            videoLink.push(data.videos[i].uri);
-                        }
-                        else {
-                            videoTitle.push(data.videos[i].title);
-                            videoLink.push(data.videos[i].uri);
-                        }
-                    }
-                    
-                    var videoTitleLower = new Array();
-                    var videoMapTemp = new Map();
-    
-                    for (k = 0; k < videoTitle.length; k++) {
-                        videoTitleLower.push(videoTitle[k].toLowerCase());
-                        videoMapTemp.set(videoTitleLower[k], videoLink[k]);
-                    }
-                    videoMap = new Map ([...videoMapTemp].sort((a, b) => String(a[0]).localeCompare(b[0])));
-                }
-        
-                if (data.genres !== undefined) {
-                    for (i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
-                    if (data.genres.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
-                }
-                    
-                if (data.styles !== undefined) {
-                    for (i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
-                    if (data.styles.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
-                }
-
-                if (data.tracklist !== undefined) {
-                    var trackNumber = 0;
-                    for (i = 0; i < data.tracklist.length; i++) {
-                        if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
-                            trackNumber++;
-                            if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
-                            else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
-                        }
-                    }
-                }
-
-                if (req.isAuthenticated()) {
-                    var addAlbum = req.body.add;
-                    var duplicate = req.query.duplicate;
-
-                    setTimeout(function () {
-                        res.render("album", {
-                            logged: true,
-                            albumID: album,
-                            artist: artistName,
-                            title: albumName,
-                            year: year,
-                            cover: albumArt,
-                            videoMap: videoMap,
-                            genre: genreAlbum,
-                            tracks: tracklist,
-                            duplicate: duplicate,
-                            list: req.user.displayname
-                        });
-                    }, 500);
-                }
-                
-                else {
-                    var duplicate = req.query.duplicate;
-
-                    setTimeout(function () {
-                        res.render("album", {
-                            logged: false,
-                            albumID: album,
-                            artist: artistName,
-                            title: albumName,
-                            year: year,
-                            cover: albumArt,
-                            videoMap: videoMap,
-                            genre: genreAlbum,
-                            tracks: tracklist,
-                            duplicate: duplicate
-                        });
-                    }, 500);
-                }
+    const regex = /^[0-9]+$/;
+    const num = regex.test(album);
+    if (num === false) res.redirect("/albumSearch?notFound=true");
+    else {
+        db.getMaster(album, function(err, data) {
+            if (err) {
+                console.log(err);
+                res.redirect("/albumSearch?notFound=true");
             }
-            else res.redirect("albumSearch");
-        }
-    });
+            else {
+                if (data.artists !== undefined) {
+                    artistName = data.artists[0].name;
+                    albumName = data.title;
+                    
+                    const censoredAlbums = require("./scripts/censoredAlbums");
+                    if (censoredAlbums.includes(parseInt(album))) albumArt = "/censored.png";
+                    else if (album == "24535" && data.images?.[5]?.uri !== undefined) albumArt = data.images[5].uri; //alternate album cover
+                    else if (data.images?.[0]?.uri !== undefined) albumArt = data.images[0].uri;
+                    
+                    if (data.year === 0 || undefined) year = "";
+                    else year = data.year;
+                    
+                    if (data.videos !== undefined) {
+                        for (i = 0; i < data.videos.length; i++) {
+                            const artist = artistName + " - ";
+                            const artistEnd = " - " + artistName;
+                            const title = data.videos[i].title;
+                            var vidTitle = "";
+                            
+                            if (title.startsWith(artist) || title.startsWith(artistName + " – ") || title.startsWith(artist.toLowerCase()) || title.startsWith(artistName.toLowerCase() + " – ")) {
+                                vidTitle = title.slice(artist.length, title.length);
+                                videoTitle.push(vidTitle);
+                                videoLink.push(data.videos[i].uri);
+                            }
+                            else if (title.endsWith(artistEnd) || title.endsWith(" – " + artistName) || title.endsWith(artistEnd.toLowerCase()) || title.endsWith(" – " + artistName.toLowerCase())) {
+                                vidTitle = title.slice(0, title.length - artistEnd.length);
+                                videoTitle.push(vidTitle);
+                                videoLink.push(data.videos[i].uri);
+                            }
+                            else {
+                                videoTitle.push(data.videos[i].title);
+                                videoLink.push(data.videos[i].uri);
+                            }
+                        }
+                        
+                        var videoTitleLower = new Array();
+                        var videoMapTemp = new Map();
+                        
+                        for (k = 0; k < videoTitle.length; k++) {
+                            videoTitleLower.push(videoTitle[k].toLowerCase());
+                            videoMapTemp.set(videoTitleLower[k], videoLink[k]);
+                        }
+                        videoMap = new Map ([...videoMapTemp].sort((a, b) => String(a[0]).localeCompare(b[0])));
+                    }
+                    
+                    if (data.genres !== undefined) {
+                        for (i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
+                        if (data.genres.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
+                    }
+                    
+                    if (data.styles !== undefined) {
+                        for (i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
+                        if (data.styles.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
+                    }
+                    
+                    if (data.tracklist !== undefined) {
+                        var trackNumber = 0;
+                        for (i = 0; i < data.tracklist.length; i++) {
+                            if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
+                                trackNumber++;
+                                if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
+                                else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
+                            }
+                        }
+                    }
+                    
+                    if (req.isAuthenticated()) {
+                        var addAlbum = req.body.add;
+                        var duplicate = req.query.duplicate;
+                        setTimeout(function () {
+                            res.render("album", {
+                                logged: true,
+                                albumID: album,
+                                artist: artistName,
+                                title: albumName,
+                                year: year,
+                                cover: albumArt,
+                                videoMap: videoMap,
+                                genre: genreAlbum,
+                                tracks: tracklist,
+                                duplicate: duplicate,
+                                list: req.user.displayname
+                            });
+                        }, 500);
+                    }
+                    else {
+                        var duplicate = req.query.duplicate;
+                        setTimeout(function () {
+                            res.render("album", {
+                                logged: false,
+                                albumID: album,
+                                artist: artistName,
+                                title: albumName,
+                                year: year,
+                                cover: albumArt,
+                                videoMap: videoMap,
+                                genre: genreAlbum,
+                                tracks: tracklist,
+                                duplicate: duplicate
+                            });
+                        }, 500);
+                    }
+                }
+                else res.redirect("/albumSearch?notFound=true");
+            }
+        });
+    }
 });
 
 
@@ -1151,96 +1151,106 @@ app.post("/albumSearch", function (req, res) {
 app.post("/album/:albumId", function (req, res) {
     if (req.isAuthenticated()) {
         var album = req.params.albumId;
-    
-        Album.countDocuments({"userID": req.user._id, "albumID": album}, function (err, result) {
-            if (err) console.log(err);
-            else if (result > 0) res.redirect("/album/" + album + "?duplicate=true");
-            else {
-                var artistName = "";
-                var albumName = "";
-                var year = "";
-                var albumArt = "";
-                var genreAlbum = new Array();
-                var trackNumbers = new Array();
-                var tracklist = new Array();
-                var trackLength = new Array();
-    
-                db.getMaster(album, function(err, data) {
-                    if (data.artists !== undefined) {
-                        artistName = data.artists[0].name;
-                        albumName = data.title;
-                        
-                        const censoredAlbums = require("./scripts/censoredAlbums");
-                        if (censoredAlbums.includes(parseInt(album))) albumArt = "/censored.png";
-                        else if (album == "24535" && data.images?.[5]?.uri !== undefined) albumArt = data.images[5].uri; //alternate album cover
-                        else if (data.images?.[0]?.uri !== undefined) albumArt = data.images[0].uri;
-    
-                        if (data.year === 0 || undefined) year = "";
-                        else year = data.year;
-    
-                        if (data.genres !== undefined) {
-                            for (i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
-                            if (data.genres.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
+        const regex = /^[0-9]+$/;
+        const num = regex.test(album);
+        if (num === false) res.redirect("/albumSearch?notFound=true");
+        else {
+            Album.countDocuments({"userID": req.user._id, "albumID": album}, function (err, result) {
+                if (err) console.log(err);
+                else if (result > 0) res.redirect("/album/" + album + "?duplicate=true");
+                else {
+                    var artistName = "";
+                    var albumName = "";
+                    var year = "";
+                    var albumArt = "";
+                    var genreAlbum = new Array();
+                    var trackNumbers = new Array();
+                    var tracklist = new Array();
+                    var trackLength = new Array();
+                    
+                    db.getMaster(album, function(err, data) {
+                        if (err) {
+                            console.log(err);
+                            res.redirect("/albumSearch?notFound=true");
                         }
+                        else if (data.artists !== undefined) {
+                            artistName = data.artists[0].name;
+                            albumName = data.title;
                             
-                        if (data.styles !== undefined) {
-                            for (i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
-                            if (data.styles.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
-                        }
-    
-                        if (data.tracklist !== undefined) {
-                            var trackNumber = 0;
-                            for (i = 0; i < data.tracklist.length; i++) {
-                                if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
-                                    trackNumber++;
-                                    if (data.tracklist[i].duration === '') {
-                                        trackNumbers.push(trackNumber);
-                                        tracklist.push(data.tracklist[i].title);
-                                    }
-                                    else {
-                                        trackNumbers.push(trackNumber);
-                                        tracklist.push(data.tracklist[i].title);
-                                        trackLength.push(data.tracklist[i].duration);
+                            const censoredAlbums = require("./scripts/censoredAlbums");
+                            if (censoredAlbums.includes(parseInt(album))) albumArt = "/censored.png";
+                            else if (album == "24535" && data.images?.[5]?.uri !== undefined) albumArt = data.images[5].uri; //alternate album cover
+                            else if (data.images?.[0]?.uri !== undefined) albumArt = data.images[0].uri;
+                            
+                            if (data.year === 0 || undefined) year = "";
+                            else year = data.year;
+                            
+                            if (data.genres !== undefined) {
+                                for (i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
+                                if (data.genres.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
+                            }
+                            
+                            if (data.styles !== undefined) {
+                                for (i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
+                                if (data.styles.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
+                            }
+                            
+                            if (data.tracklist !== undefined) {
+                                var trackNumber = 0;
+                                for (i = 0; i < data.tracklist.length; i++) {
+                                    if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
+                                        trackNumber++;
+                                        if (data.tracklist[i].duration === '') {
+                                            trackNumbers.push(trackNumber);
+                                            tracklist.push(data.tracklist[i].title);
+                                        }
+                                        else {
+                                            trackNumbers.push(trackNumber);
+                                            tracklist.push(data.tracklist[i].title);
+                                            trackLength.push(data.tracklist[i].duration);
+                                        }
                                     }
                                 }
                             }
+                            
+                            var addAlbum = req.body.add;
+                            if (addAlbum === "added") {
+                                Album.countDocuments({"userID": req.user._id}, function (err, count) {
+                                    if (err) console.log(err);
+                                    else {
+                                        const albumAdd = new Album({
+                                            albumID: album,
+                                            userID: req.user._id,
+                                            title: albumName,
+                                            artist: artistName,
+                                            year: year,
+                                            img: albumArt,
+                                            trackNumber: trackNumbers,
+                                            albumTracks: tracklist,
+                                            trackLength: trackLength,
+                                            position: count + 1
+                                        });
+                                        albumAdd.save(function (err) {
+                                            if (err) {
+                                                console.log(err);
+                                                res.redirect("/albumSearch?notFound=true")
+                                            }
+                                            else {
+                                                const page = Math.trunc(count/10);
+                                                res.redirect("/userProfile/" + req.user.displayname + "?page=" + (page + 1) + "&added=true");
+                                            }
+                                        });
+                                    }
+                                });
+                            }
                         }
-
-                        var addAlbum = req.body.add;
-                        if (addAlbum === "added") {
-                            Album.countDocuments({"userID": req.user._id}, function (err, count) {
-                                if (err) console.log(err);
-                                else {
-                                    const albumAdd = new Album({
-                                        albumID: album,
-                                        userID: req.user._id,
-                                        title: albumName,
-                                        artist: artistName,
-                                        year: year,
-                                        img: albumArt,
-                                        trackNumber: trackNumbers,
-                                        albumTracks: tracklist,
-                                        trackLength: trackLength,
-                                        position: count + 1
-                                    });
-                                    albumAdd.save(function (err) {
-                                        if (err) {
-                                            console.log(err);
-                                            res.redirect("/albumSearch?notFound=true")
-                                        }
-                                        else {
-                                            const page = Math.trunc(count/10);
-                                            res.redirect("/userProfile/" + req.user.displayname + "?page=" + (page + 1) + "&added=true");
-                                        }
-                                    });
-                                }
-                            });
-                        }
-                    }
-                });
-            }
-        });
-    } else res.redirect("/login");
+                        else res.redirect("/albumSearch?notFound=true");
+                    });
+                }
+            });
+        }
+    }
+    else res.redirect("/login");
 });
 
 
