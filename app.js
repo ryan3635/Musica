@@ -388,7 +388,10 @@ app.get("/userProfile/:displayName", function (req, res) {
     const yourList = req.user ? req.user.displayname : undefined;
 
     User.findOne({displayname: displayName}, function (err, userId) {
-        if (err) console.log(err);
+        if (err) {
+            console.log(err);
+            res.redirect("/");
+        }
         else if (!userId) res.redirect("/");
         else {
             const userID = userId._id;
@@ -419,6 +422,7 @@ app.get("/userProfile/:displayName", function (req, res) {
                                     var samePos = req.query.samePos;
                                     var goto = req.query.goto;
                                     var gotoError = req.query.gotoError;
+                                    var error = req.query.error;
 
                                     var logged = false;
                                     if (req.user) {
@@ -439,6 +443,7 @@ app.get("/userProfile/:displayName", function (req, res) {
                                                 page: page,
                                                 goto: goto,
                                                 gotoError: gotoError,
+                                                error: error,
                                                 listSize: listSize,
                                                 pages: pageLimit,
                                                 list: displayName,
@@ -927,13 +932,21 @@ app.post("/userProfile/:displayName", function (req, res) {
     var reorderedAlbum = req.body.reordered;
 
     User.findOne({displayname: displayName}, function (err, userId) {
-        if (err) console.log(err);
+        if (err) {
+            console.log(err);
+            res.redirect("/");
+        }
+        else if (!userId) res.redirect("/");
         else {
             const userID = userId._id;
+
             //Jump to End of List
             if (end === "end") {
                 Album.countDocuments({"userID": userID}, function (err, count) {
-                    if (err) console.log(err);
+                    if (err) {
+                        console.log(err);
+                        res.redirect(displayName + "?page=1");
+                    }
                     else {
                         const finalPage = (Math.trunc(count/10) + 1);
                         if ((count % 10) === 0 && count > 10) res.redirect(displayName + "?page=" + (finalPage - 1));
@@ -944,21 +957,19 @@ app.post("/userProfile/:displayName", function (req, res) {
 
             //Page Select
             else if (goto === "goto") {
-                var gotoPage = req.body.gotoPage;
+                const page = parseInt(req.body.page) || 1;
+                const gotoPage = parseInt(req.body.gotoPage);
 
-                gotoPage = parseInt(gotoPage);
-                Album.findOne({"userID": userID, albumID: albumRemove}, {position: 1}, function (err, albumPos) {
-                    if (err) console.log(err);
+                Album.countDocuments({"userID": userID}, function (err, count) {
+                    if (err) {
+                        console.log(err);
+                        res.redirect(displayName + "?page=1&gotoError=true");
+                    }
+                    else if (!count) res.redirect(displayName + "?page=1&gotoError=true");
                     else {
-                        Album.countDocuments({"userID": userID}, function (err, count) {
-                            if (err) console.log(err);
-                            else {
-                                const pageLimit = (Math.trunc(count/10) + 1);
-                                const page = (Math.trunc(albumPos/10) + 1);
-                                if (gotoPage <= 0 || isNaN(gotoPage) || gotoPage > pageLimit) res.redirect(displayName + "?page=" + page + "&goto=true&gotoError=true");
-                                else res.redirect(displayName + "?page=" + gotoPage);
-                            }
-                        });
+                        const pageLimit = (Math.trunc(count/10) + 1);
+                        if (gotoPage <= 0 || isNaN(gotoPage) || gotoPage > pageLimit) res.redirect(displayName + "?page=" + page + "&goto=true&gotoError=true");
+                        else res.redirect(displayName + "?page=" + gotoPage);
                     }
                 });
             }
@@ -969,7 +980,11 @@ app.post("/userProfile/:displayName", function (req, res) {
                 else if (userId.displayname !== req.user.displayname) res.redirect(displayName + "?page=1");
                 else {
                     Album.findOne({"userID": userID, albumID: albumRemove}, {position: 1}, function (err, albumPos) {
-                        if (err) console.log(err);
+                        if (err) {
+                            console.log(err);
+                            res.redirect(displayName + "?error=true");
+                        }
+                        else if (!albumPos) res.redirect(displayName + "?error=true");
                         else {
                             Album.updateMany({"userID": userID, "position": mongoose.trusted({$gt: albumPos.position})}, {$inc: {position: -1}}, function (err, result) {
                                 if (err) console.log(err);
@@ -1004,66 +1019,64 @@ app.post("/userProfile/:displayName", function (req, res) {
                 else {
                     var newPos = req.body.newPos;
                     newPos = parseInt(newPos);
-                    Album.find({"userID": userID, albumID: reorderedAlbum}, {albumID: 1, position: 1}, function (err, id) {
+                    Album.findOne({"userID": userID, albumID: reorderedAlbum}, {albumID: 1, position: 1}, function (err, id) {
                         if (err) {
                             console.log(err);
                             res.redirect(displayName + "?page=1");
                         }
+                        else if (!id) res.redirect(displayName + "?page=1&reorderError=true");
                         else {
-                            var page = (Math.trunc(id[0].position/10) + 1);
-                            if ((id[0].position % 10) === 0) page--;
-                            if (id !== undefined) {
-                                const currentPos = id[0].position;
-                                const currentId = id[0].albumID;
-    
-                                Album.countDocuments({"userID": userID}, function (err, count) {
-                                    if (err) console.log(err);
+                            var page = (Math.trunc(id.position/10) + 1);
+                            if ((id.position % 10) === 0) page--;
+                            const currentPos = id.position;
+                            const currentId = id.albumID;
+
+                            Album.countDocuments({"userID": userID}, function (err, count) {
+                                if (err) console.log(err);
+                                else {
+                                    if (newPos <= 0 || isNaN(newPos) || newPos > count) res.redirect(displayName + "?page=" + page + "&reorder=true&reorderError=true");
+                                    else if (newPos === currentPos) res.redirect(displayName + "?page=" + page + "&reorder=true&samePos=true");
                                     else {
-                                        if (newPos <= 0 || isNaN(newPos) || newPos > count) res.redirect(displayName + "?page=" + page + "&reorder=true&reorderError=true");
-                                        else if (newPos === currentPos) res.redirect(displayName + "?page=" + page + "&reorder=true&samePos=true");
-                                        else {
-                                            if (newPos > currentPos) {
-                                                //lower rank of album; other albums increase in rank
-                                                var newPositionArray = new Array();
-                                                for (i = currentPos; i <= newPos; i++) {
-                                                    newPositionArray.push(i);
-                                                }
-                                                async.eachSeries(newPositionArray, async function (pos, done) {
-                                                    const shiftUp = await Album.updateOne({"userID": userID, "position": pos}, {$set: {position: pos - 1}}, done);
-                                                    if (pos === newPos) {
-                                                        newPositionArray = [];
-                                                        const final = await Album.updateOne({"userID": userID, "albumID": currentId}, {$set: {position: newPos}});
-                                                        return final;
-                                                    }
-                                                    else return shiftUp;
-                                                });
+                                        if (newPos > currentPos) {
+                                            //lower rank of album; other albums increase in rank
+                                            var newPositionArray = new Array();
+                                            for (i = currentPos; i <= newPos; i++) {
+                                                newPositionArray.push(i);
                                             }
-                                            else {
-                                                //increase rank of album; other albums decrease in rank
-                                                var newPositionArray = new Array();
-                                                for (i = currentPos; i >= newPos; i--) {
-                                                    newPositionArray.push(i);
+                                            async.eachSeries(newPositionArray, async function (pos, done) {
+                                                const shiftUp = await Album.updateOne({"userID": userID, "position": pos}, {$set: {position: pos - 1}}, done);
+                                                if (pos === newPos) {
+                                                    newPositionArray = [];
+                                                    const final = await Album.updateOne({"userID": userID, "albumID": currentId}, {$set: {position: newPos}});
+                                                    return final;
                                                 }
-                                                async.eachSeries(newPositionArray, async function (pos, done) {
-                                                    const shiftDown = await Album.updateOne({"userID": userID, "position": pos}, {$set: {position: pos + 1}}, done);
-                                                    if (pos === newPos) {
-                                                        newPositionArray = [];
-                                                        const final = await Album.updateOne({"userID": userID, "albumID": currentId}, {$set: {position: newPos}});
-                                                        return final;
-                                                    }
-                                                    else return shiftDown;
-                                                });
-                                            }
-                                            setTimeout(function () {
-                                                page = (Math.trunc(newPos/10) + 1);
-                                                if ((newPos % 10) === 0) page--;
-                                                res.redirect(displayName + "?page=" + page + "&reordered=true&reorder=true");
-                                            }, 1250);
+                                                else return shiftUp;
+                                            });
                                         }
+                                        else {
+                                            //increase rank of album; other albums decrease in rank
+                                            var newPositionArray = new Array();
+                                            for (i = currentPos; i >= newPos; i--) {
+                                                newPositionArray.push(i);
+                                            }
+                                            async.eachSeries(newPositionArray, async function (pos, done) {
+                                                const shiftDown = await Album.updateOne({"userID": userID, "position": pos}, {$set: {position: pos + 1}}, done);
+                                                if (pos === newPos) {
+                                                    newPositionArray = [];
+                                                    const final = await Album.updateOne({"userID": userID, "albumID": currentId}, {$set: {position: newPos}});
+                                                    return final;
+                                                }
+                                                else return shiftDown;
+                                            });
+                                        }
+                                        setTimeout(function () {
+                                            page = (Math.trunc(newPos/10) + 1);
+                                            if ((newPos % 10) === 0) page--;
+                                            res.redirect(displayName + "?page=" + page + "&reordered=true&reorder=true");
+                                        }, 1250);
                                     }
-                                });
-                            }
-                            else res.redirect(displayName + "?page=" + page + "&reorder=true&reorderError=true");
+                                }
+                            });
                         }
                     });
                 }

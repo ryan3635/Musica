@@ -38,6 +38,10 @@
             <p class="message hidden">Please Enter a Valid Page Number!</p>
         <% } %>
 
+        <% if (error) { %>
+            <p class="message hidden">Something Went Wrong, Try Again!</p>
+        <% } %>
+
         <h2><%=list%></h2>
         <h2 style="margin-top: -9px">Ranked List</h2>
 
@@ -83,6 +87,7 @@
                 <hr style="width: 135px; border-width: 1.1px; border-radius: 10%; margin-right: 45px; border-color: black">
                 <form action="/userProfile/<%=list%>" method="post" style="margin-top: 0; padding: 0">
                     <input type="text" placeholder="Page" name="gotoPage" autocomplete="off" style="width: 135px; height: 10px; padding: 20px; margin-top: 5px; opacity: 0.5; font-style: italic;">
+                    <input type="hidden" name="page" value="<%=page%>">
                     <button type="submit" name="goto" value="goto" style="margin-top: 10px; margin-left: 68px" class="trackListButton buttonStyle">Go</button>
                 </form>
             </div>
