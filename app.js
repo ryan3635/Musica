@@ -1121,8 +1121,9 @@ app.post("/albumSearch", function (req, res) {
                 var albumID1 = 99999999999999;
                 var albumID2 = 99999999999999;
                 if (searchResult.results.length > 0) {
+                    //prefer US album art
                     var i = searchResult.results.findIndex(album => album.country === "US");
-                    while (i >= 0 && i < searchResult.results.length - 1) {
+                    while (i >= 0 && i < searchResult.results.length) {
                         const albumID1temp = searchResult.results[i].master_id;
                         if (albumID1temp < albumID1 && searchResult.results[i].country === "US") {
                             albumID1 = albumID1temp;
@@ -1130,8 +1131,9 @@ app.post("/albumSearch", function (req, res) {
                         i++;
                     }
     
+                    //prefer UK album art if US not found
                     var j = searchResult.results.findIndex(album => album.country === "UK");
-                    while (j >= 0 && j < searchResult.results.length - 1) {
+                    while (j >= 0 && j < searchResult.results.length) {
                         const albumID2temp = searchResult.results[j].master_id;
                         if (albumID2temp < albumID2 && searchResult.results[j].country === "UK") {
                             albumID2 = albumID2temp;
