@@ -533,19 +533,19 @@ app.get("/album/:albumId", function (req, res) {
                 res.redirect("/albumSearch?notFound=true");
             }
             else {
-                if (data.artists !== undefined) {
+                if (data.artists) {
                     artistName = data.artists[0].name;
                     albumName = data.title;
                     
                     const censoredAlbums = require("./scripts/censoredAlbums");
                     if (censoredAlbums.includes(parseInt(album))) albumArt = "/censored.png";
-                    else if (album == "24535" && data.images?.[5]?.uri !== undefined) albumArt = data.images[5].uri; //alternate album cover
-                    else if (data.images?.[0]?.uri !== undefined) albumArt = data.images[0].uri;
+                    else if (album == "24535" && data.images?.[5]?.uri) albumArt = data.images[5].uri; //alternate album cover
+                    else if (data.images?.[0]?.uri) albumArt = data.images[0].uri;
                     
-                    if (data.year === 0 || undefined) year = "";
-                    else year = data.year;
+                    if (data.year) year = data.year;
+                    else year = "";
                     
-                    if (data.videos !== undefined) {
+                    if (data.videos) {
                         for (i = 0; i < data.videos.length; i++) {
                             const artist = artistName + " - ";
                             const artistEnd = " - " + artistName;
@@ -578,17 +578,19 @@ app.get("/album/:albumId", function (req, res) {
                         videoMap = new Map ([...videoMapTemp].sort((a, b) => String(a[0]).localeCompare(b[0])));
                     }
                     
-                    if (data.genres !== undefined) {
+                    if (data.genres) {
                         for (i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
-                        if (data.genres.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
+                        if (data.genres.includes("Death Metal") || data.genres.includes("Goregrind") || data.genres.includes("Pornogrind"))
+                            albumArt = "/censored.png";
                     }
                     
-                    if (data.styles !== undefined) {
+                    if (data.styles) {
                         for (i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
-                        if (data.styles.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
+                        if (data.styles.includes("Death Metal") || data.styles.includes("Goregrind") || data.styles.includes("Pornogrind"))
+                            albumArt = "/censored.png";
                     }
                     
-                    if (data.tracklist !== undefined) {
+                    if (data.tracklist) {
                         var trackNumber = 0;
                         for (i = 0; i < data.tracklist.length; i++) {
                             if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
@@ -1186,29 +1188,31 @@ app.post("/album/:albumId", function (req, res) {
                             console.log(err);
                             res.redirect("/albumSearch?notFound=true");
                         }
-                        else if (data.artists !== undefined) {
+                        else if (data.artists) {
                             artistName = data.artists[0].name;
                             albumName = data.title;
                             
                             const censoredAlbums = require("./scripts/censoredAlbums");
                             if (censoredAlbums.includes(parseInt(album))) albumArt = "/censored.png";
-                            else if (album == "24535" && data.images?.[5]?.uri !== undefined) albumArt = data.images[5].uri; //alternate album cover
-                            else if (data.images?.[0]?.uri !== undefined) albumArt = data.images[0].uri;
+                            else if (album == "24535" && data.images?.[5]?.uri) albumArt = data.images[5].uri; //alternate album cover for specific album
+                            else if (data.images?.[0]?.uri) albumArt = data.images[0].uri;
                             
-                            if (data.year === 0 || undefined) year = "";
-                            else year = data.year;
+                            if (data.year) year = data.year;
+                            else year = "";
                             
-                            if (data.genres !== undefined) {
+                            if (data.genres) {
                                 for (i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
-                                if (data.genres.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
+                                if (data.genres.includes("Death Metal") || data.genres.includes("Goregrind") || data.genres.includes("Pornogrind"))
+                                    albumArt = "/censored.png";
                             }
                             
-                            if (data.styles !== undefined) {
+                            if (data.styles) {
                                 for (i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
-                                if (data.styles.includes("Death Metal", "Goregrind", "Pornogrind")) albumArt = "/censored.png";
+                                if (data.styles.includes("Death Metal") || data.styles.includes("Goregrind") || data.styles.includes("Pornogrind"))
+                                    albumArt = "/censored.png";
                             }
                             
-                            if (data.tracklist !== undefined) {
+                            if (data.tracklist) {
                                 var trackNumber = 0;
                                 for (i = 0; i < data.tracklist.length; i++) {
                                     if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
