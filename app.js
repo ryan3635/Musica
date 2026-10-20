@@ -1,3 +1,4 @@
+"use strict";
 require('dotenv').config();
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -466,6 +467,7 @@ app.get("/userProfile/:displayName", function (req, res) {
                                                 page: page,
                                                 goto: goto,
                                                 gotoError: gotoError,
+                                                error: error,
                                                 listSize: listSize,
                                                 pages: pageLimit,
                                                 list: displayName,
@@ -546,7 +548,7 @@ app.get("/album/:albumId", function (req, res) {
                     else year = "";
                     
                     if (data.videos) {
-                        for (i = 0; i < data.videos.length; i++) {
+                        for (let i = 0; i < data.videos.length; i++) {
                             const artist = artistName + " - ";
                             const artistEnd = " - " + artistName;
                             const title = data.videos[i].title;
@@ -571,7 +573,7 @@ app.get("/album/:albumId", function (req, res) {
                         var videoTitleLower = new Array();
                         var videoMapTemp = new Map();
                         
-                        for (k = 0; k < videoTitle.length; k++) {
+                        for (let k = 0; k < videoTitle.length; k++) {
                             videoTitleLower.push(videoTitle[k].toLowerCase());
                             videoMapTemp.set(videoTitleLower[k], videoLink[k]);
                         }
@@ -579,20 +581,20 @@ app.get("/album/:albumId", function (req, res) {
                     }
                     
                     if (data.genres) {
-                        for (i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
+                        for (let i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
                         if (data.genres.includes("Death Metal") || data.genres.includes("Goregrind") || data.genres.includes("Pornogrind"))
                             albumArt = "/censored.png";
                     }
                     
                     if (data.styles) {
-                        for (i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
+                        for (let i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
                         if (data.styles.includes("Death Metal") || data.styles.includes("Goregrind") || data.styles.includes("Pornogrind"))
                             albumArt = "/censored.png";
                     }
                     
                     if (data.tracklist) {
                         var trackNumber = 0;
-                        for (i = 0; i < data.tracklist.length; i++) {
+                        for (let i = 0; i < data.tracklist.length; i++) {
                             if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
                                 trackNumber++;
                                 if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
@@ -1042,7 +1044,7 @@ app.post("/userProfile/:displayName", function (req, res) {
                                         if (newPos > currentPos) {
                                             //lower rank of album; other albums increase in rank
                                             var newPositionArray = new Array();
-                                            for (i = currentPos; i <= newPos; i++) {
+                                            for (let i = currentPos; i <= newPos; i++) {
                                                 newPositionArray.push(i);
                                             }
                                             async.eachSeries(newPositionArray, async function (pos, done) {
@@ -1058,7 +1060,7 @@ app.post("/userProfile/:displayName", function (req, res) {
                                         else {
                                             //increase rank of album; other albums decrease in rank
                                             var newPositionArray = new Array();
-                                            for (i = currentPos; i >= newPos; i--) {
+                                            for (let i = currentPos; i >= newPos; i--) {
                                                 newPositionArray.push(i);
                                             }
                                             async.eachSeries(newPositionArray, async function (pos, done) {
@@ -1203,20 +1205,20 @@ app.post("/album/:albumId", function (req, res) {
                             else year = "";
                             
                             if (data.genres) {
-                                for (i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
+                                for (let i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
                                 if (data.genres.includes("Death Metal") || data.genres.includes("Goregrind") || data.genres.includes("Pornogrind"))
                                     albumArt = "/censored.png";
                             }
                             
                             if (data.styles) {
-                                for (i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
+                                for (let i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
                                 if (data.styles.includes("Death Metal") || data.styles.includes("Goregrind") || data.styles.includes("Pornogrind"))
                                     albumArt = "/censored.png";
                             }
                             
                             if (data.tracklist) {
                                 var trackNumber = 0;
-                                for (i = 0; i < data.tracklist.length; i++) {
+                                for (let i = 0; i < data.tracklist.length; i++) {
                                     if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
                                         trackNumber++;
                                         if (data.tracklist[i].duration === '') {
@@ -1280,7 +1282,7 @@ app.listen(3000, function () {
         User.find({awaitingReset: true}, function (err, user) {
             if (err) console.log(err);
             else {
-                for (i = 0; i < user.length; i++) {
+                for (let i = 0; i < user.length; i++) {
                     var expired = new Date(user[i].tokenExpire).getTime() <= Date.now();
                     if (expired) {
                         User.updateOne({"_id": user[i]._id}, {$unset: {token: 1, tokenExpire: 1, awaitingReset: 1}}, function (err, result) {
