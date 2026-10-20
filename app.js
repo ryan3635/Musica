@@ -432,50 +432,46 @@ app.get("/userProfile/:displayName", function (req, res) {
                                     }
                                     
                                     if (req.user) {
-                                        setTimeout(function () {
-                                            res.render("userProfile", {
-                                                albumList: results,
-                                                added: added,
-                                                removed: removed,
-                                                reordered: reordered,
-                                                reorder: reorder,
-                                                reorderError: reorderError,
-                                                samePos: samePos,
-                                                page: page,
-                                                goto: goto,
-                                                gotoError: gotoError,
-                                                error: error,
-                                                listSize: listSize,
-                                                pages: pageLimit,
-                                                list: displayName,
-                                                yourList: yourList,
-                                                logged: logged,
-                                                loggedToolbar: true
-                                            });
-                                        }, 500);
+                                        res.render("userProfile", {
+                                            albumList: results,
+                                            added: added,
+                                            removed: removed,
+                                            reordered: reordered,
+                                            reorder: reorder,
+                                            reorderError: reorderError,
+                                            samePos: samePos,
+                                            page: page,
+                                            goto: goto,
+                                            gotoError: gotoError,
+                                            error: error,
+                                            listSize: listSize,
+                                            pages: pageLimit,
+                                            list: displayName,
+                                            yourList: yourList,
+                                            logged: logged,
+                                            loggedToolbar: true
+                                        });
                                     }
                                     else {
-                                        setTimeout(function () {
-                                            res.render("userProfile", {
-                                                albumList: results,
-                                                added: added,
-                                                removed: removed,
-                                                reordered: reordered,
-                                                reorder: reorder,
-                                                reorderError: reorderError,
-                                                samePos: samePos,
-                                                page: page,
-                                                goto: goto,
-                                                gotoError: gotoError,
-                                                error: error,
-                                                listSize: listSize,
-                                                pages: pageLimit,
-                                                list: displayName,
-                                                yourList: yourList,
-                                                logged: logged,
-                                                loggedToolbar: false
-                                            });
-                                        }, 500);
+                                        res.render("userProfile", {
+                                            albumList: results,
+                                            added: added,
+                                            removed: removed,
+                                            reordered: reordered,
+                                            reorder: reorder,
+                                            reorderError: reorderError,
+                                            samePos: samePos,
+                                            page: page,
+                                            goto: goto,
+                                            gotoError: gotoError,
+                                            error: error,
+                                            listSize: listSize,
+                                            pages: pageLimit,
+                                            list: displayName,
+                                            yourList: yourList,
+                                            logged: logged,
+                                            loggedToolbar: false
+                                        });
                                     }
                                 }
                             }
@@ -606,38 +602,34 @@ app.get("/album/:albumId", function (req, res) {
                     if (req.isAuthenticated()) {
                         var addAlbum = req.body.add;
                         var duplicate = req.query.duplicate;
-                        setTimeout(function () {
-                            res.render("album", {
-                                logged: true,
-                                albumID: album,
-                                artist: artistName,
-                                title: albumName,
-                                year: year,
-                                cover: albumArt,
-                                videoMap: videoMap,
-                                genre: genreAlbum,
-                                tracks: tracklist,
-                                duplicate: duplicate,
-                                list: req.user.displayname
-                            });
-                        }, 500);
+                        res.render("album", {
+                            logged: true,
+                            albumID: album,
+                            artist: artistName,
+                            title: albumName,
+                            year: year,
+                            cover: albumArt,
+                            videoMap: videoMap,
+                            genre: genreAlbum,
+                            tracks: tracklist,
+                            duplicate: duplicate,
+                            list: req.user.displayname
+                        });
                     }
                     else {
                         var duplicate = req.query.duplicate;
-                        setTimeout(function () {
-                            res.render("album", {
-                                logged: false,
-                                albumID: album,
-                                artist: artistName,
-                                title: albumName,
-                                year: year,
-                                cover: albumArt,
-                                videoMap: videoMap,
-                                genre: genreAlbum,
-                                tracks: tracklist,
-                                duplicate: duplicate
-                            });
-                        }, 500);
+                        res.render("album", {
+                            logged: false,
+                            albumID: album,
+                            artist: artistName,
+                            title: albumName,
+                            year: year,
+                            cover: albumArt,
+                            videoMap: videoMap,
+                            genre: genreAlbum,
+                            tracks: tracklist,
+                            duplicate: duplicate
+                        });
                     }
                 }
                 else res.redirect("/albumSearch?notFound=true");
@@ -1001,10 +993,8 @@ app.post("/userProfile/:displayName", function (req, res) {
                                             Album.countDocuments({"userID": userID}, function (err, count) {
                                                 if (err) console.log(err);
                                                 else {
-                                                    setTimeout(function () {
-                                                        if ((count % 10) === 0 && count >= 10) res.redirect(displayName + "?page=" + (page - 1) + "&reorder=true&removed=true");
-                                                        else res.redirect(displayName + "?page=" + page + "&reorder=true&removed=true");
-                                                    }, 1250);
+                                                    if ((count % 10) === 0 && count >= 10) res.redirect(displayName + "?page=" + (page - 1) + "&reorder=true&removed=true");
+                                                    else res.redirect(displayName + "?page=" + page + "&reorder=true&removed=true");
                                                 }
                                             });
                                         }
@@ -1107,11 +1097,7 @@ app.post("/albumSearch", function (req, res) {
                 if (discogsId.length > 13) discogsId = discogsId.slice(0, 13);
                 discogsId = parseInt(discogsId);
                 db.search({master_id: discogsId}).then(function (searchResult) {
-                    if (searchResult.results.length > 0) {
-                        setTimeout(function () {
-                            res.redirect("/album/" + searchResult.results[0].master_id);
-                        }, 1000);
-                    }
+                    if (searchResult.results.length > 0) res.redirect("/album/" + searchResult.results[0].master_id);
                     else res.redirect("/albumSearch?discogsSearch=true&notFound=true");
                 });
             }
@@ -1143,19 +1129,11 @@ app.post("/albumSearch", function (req, res) {
                         j++;
                     }
     
-                    if (albumID1 < albumID2) {
-                        setTimeout(function () {
-                            res.redirect("/album/" + albumID1);
-                        }, 1000);
-                    } else if (albumID1 > albumID2) {
-                        setTimeout(function () {
-                            res.redirect("/album/" + albumID2);
-                        }, 1000);
-                    } else {
+                    if (albumID1 < albumID2) res.redirect("/album/" + albumID1);
+                    else if (albumID1 > albumID2) res.redirect("/album/" + albumID2);
+                    else {
                         albumID1 = searchResult.results[0].master_id;
-                        setTimeout(function () {
-                            res.redirect("/album/" + albumID1);
-                        }, 1000);
+                        res.redirect("/album/" + albumID1);
                     }
                 }
                 else {
