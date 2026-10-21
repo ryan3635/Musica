@@ -14,6 +14,10 @@
             <p class="message hidden">Incorrect Email or Password!</p>
         <% } %>
 
+        <% if (limitError) { %>
+            <p class="message hidden">Attempt Limit Reached! Please Wait 5 Minutes Before Trying Again</p>
+        <% } %>
+
         <% if (pwReset) { %>
             <p class="message hidden">Password Reset! Please Login</p>
         <% } %>

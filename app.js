@@ -27,6 +27,10 @@ const filter = new swearFilter({
     }
 });
 
+const limiter = require("express-rate-limit");
+const userAuthLimit = limiter({windowMs: 300000, limit: 10, handler: function (req, res) {res.redirect("/login?limitError=true")}});
+const forgetPwLimit = limiter({windowMs: 600000, limit: 3, handler: function (req, res) {res.redirect("/forget?limitError=true")}});
+
 const bcrypt = require("bcrypt");
 const session = require("express-session");
 const passport = require("passport");
@@ -135,12 +139,14 @@ app.get("/login", function (req, res) {
     if (req.isAuthenticated()) res.render("loggedIn");
     else {
         var error = req.query.error;
+        var limitError = req.query.limitError;
         var accCreated = req.query.accCreated;
         var pwReset = req.query.pwReset;
 
         const errCheck = {
             page: "Login",
             error: error,
+            limitError: limitError,
             accCreated: accCreated,
             pwReset: pwReset
         };
@@ -227,6 +233,7 @@ app.get("/forget", function (req, res) {
         var entered = req.query.entered;
         var error = req.query.error;
         var noEmail = req.query.noEmail;
+        var limitError = req.query.limitError;
         var tokenExpired = req.query.tokenExpired;
 
         const message = {
@@ -234,6 +241,7 @@ app.get("/forget", function (req, res) {
             entered: entered,
             error: error,
             noEmail: noEmail,
+            limitError: limitError,
             tokenExpired: tokenExpired
         }
         res.render("forget", message);
@@ -640,10 +648,10 @@ app.get("/album/:albumId", function (req, res) {
 
 
 
-app.post("/login", passport.authenticate("local", {successRedirect: "/userHome?loggedIn=true", failureRedirect: "/login?error=true"}));
+app.post("/login", userAuthLimit, passport.authenticate("local", {successRedirect: "/userHome?loggedIn=true", failureRedirect: "/login?error=true"}));
 
 
-app.post("/register", function (req, res) {
+app.post("/register", userAuthLimit, function (req, res) {
     var username = req.body.username;
     var displayname = req.body.displayname;
     var passwordNew1 = req.body.passwordNew1;
@@ -702,7 +710,7 @@ app.post("/register", function (req, res) {
 });
 
 
-app.post("/forget", function (req, res) {
+app.post("/forget", forgetPwLimit, function (req, res) {
     var username = req.body.username;
 
     if (typeof username !== "string" || !username) res.redirect("/forget?error=true");
