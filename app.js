@@ -6,12 +6,25 @@ const ejs = require("ejs");
 var async = require("async");
 const crypto = require("crypto");
 const validator = require("validator");
-const swearFilter = require("swearfilter");
 const helmet = require("helmet");
-const nodemailer = require("nodemailer");
 const Discogs = require("disconnect").Client;
 var db = new Discogs({consumerKey: process.env.DISCOGS_API_KEY, consumerSecret: process.env.DISCOGS_SECRET}).database();
 
+const mongo = require("connect-mongo").default;
+const mongoose = require("mongoose");
+mongoose.set("strictQuery", false);
+mongoose.set('sanitizeFilter', true);
+mongoose.connect(process.env.MONGODB_URL, {useNewUrlParser: true, useUnifiedTopology: true});
+const User = require("./models/user");
+const Album = require("./models/album");
+
+const bcrypt = require("bcrypt");
+const session = require("express-session");
+const passport = require("passport");
+const LocalStrategy = require("passport-local").Strategy;
+const GoogleStrategy = require("passport-google-oauth20").Strategy;
+
+const nodemailer = require("nodemailer");
 const emailer = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -20,6 +33,7 @@ const emailer = nodemailer.createTransport({
     }
 });
 
+const swearFilter = require("swearfilter");
 const filter = new swearFilter({
     smartDetect: true,
     baseFilter: {
@@ -31,11 +45,6 @@ const limiter = require("express-rate-limit");
 const userAuthLimit = limiter({windowMs: 300000, limit: 10, handler: function (req, res) {res.redirect("/login?limitError=true")}});
 const forgetPwLimit = limiter({windowMs: 600000, limit: 3, handler: function (req, res) {res.redirect("/forget?limitError=true")}});
 
-const bcrypt = require("bcrypt");
-const session = require("express-session");
-const passport = require("passport");
-const LocalStrategy = require("passport-local").Strategy;
-const GoogleStrategy = require("passport-google-oauth20").Strategy;
 
 const app = express();
 app.set('view engine', 'ejs');
@@ -48,8 +57,10 @@ app.use(helmet.contentSecurityPolicy({
         }
     })
 );
+
 app.use(session({
     secret: process.env.SESSION_SECRET,
+    store: mongo.create({mongoUrl: process.env.MONGODB_URL}),
     resave: false,
     saveUninitialized: false,
     cookie: {   //httpOnly: false, secure: true; once posted online (using https)
@@ -59,15 +70,6 @@ app.use(session({
 }));
 app.use(passport.initialize());
 app.use(passport.authenticate("session"));
-
-const mongoose = require("mongoose");
-const mongodb = require("mongodb").MongoClient;
-const { Db } = require("mongodb");
-mongoose.set("strictQuery", false);
-mongoose.set('sanitizeFilter', true);
-mongoose.connect(process.env.MONGODB_URL, {useNewUrlParser: true, useUnifiedTopology: true});
-const User = require("./models/user");
-const Album = require("./models/album");
 
 passport.serializeUser(function (user, done) {
     done(null, user.id);
@@ -182,8 +184,17 @@ app.get("/register", function (req, res) {
 
 app.get("/logout", function (req, res) {
     req.logout(function (err) {
-        if (err) console.log(err);
-        else res.render("home", {loggedOut: true});
+        if (err) {
+            console.log(err);
+            res.redirect("/");
+        }
+        else {
+            req.session.destroy(function (err) {
+                if (err) console.log(err);
+                else res.render("home", {loggedOut: true});
+                
+            });
+        }
     });
 });
 
