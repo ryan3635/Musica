@@ -1272,6 +1272,14 @@ app.post("/album/:albumId", function (req, res) {
 });
 
 
+app.use(function (req, res) {
+    res.status(404).render("pageNotFound");
+});
+
+app.use(function (err, req, res, next) {
+    console.log(err);
+    res.status(500).render("pageError");
+});
 
 app.listen(process.env.PORT || 3000, function () {
     console.log("Server started!");
