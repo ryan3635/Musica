@@ -98,7 +98,7 @@ passport.use(new LocalStrategy (function (username, password, done) {
 passport.use(new GoogleStrategy({
     clientID: process.env.CLIENT_ID,
     clientSecret: process.env.CLIENT_SECRET,
-    callbackURL: "http://localhost:3000/auth/google/userHome",  //update this when posted online
+    callbackURL: process.env.URL + "/auth/google/userHome",
     userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
 },
     function (accessToken, refreshToken, profile, done) {
@@ -749,7 +749,7 @@ app.post("/forget", forgetPwLimit, function (req, res) {
                                         to: username,
                                         subject: "Musica Password Recovery",
                                         //update this html field when posted online
-                                        html: "<h2>Password Reset</h2><p>Click the link below to reset your Musica account password. If you did not request this, please ingore this email.</p><br><a href='http://localhost:3000/passwordReset?userID=" + id._id + "&token=" + token + "'>Musica Password Reset</a>"
+                                        html: "<h2>Password Reset</h2><p>Click the link below to reset your Musica account password. If you did not request this, please ingore this email.</p><br><a href='" + process.env.URL + "/passwordReset?userID=" + id._id + "&token=" + token + "'>Musica Password Reset</a>"
                                         }
                                         emailer.sendMail(email, function (err, info) {
                                             if (err) console.log(err);
@@ -1273,7 +1273,7 @@ app.post("/album/:albumId", function (req, res) {
 
 
 
-app.listen(3000, function () {
+app.listen(process.env.PORT || 3000, function () {
     console.log("Server started!");
     setInterval(function() {
         User.find({awaitingReset: true}, function (err, user) {
