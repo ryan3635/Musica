@@ -1,7 +1,6 @@
 "use strict";
 require('dotenv').config();
 const express = require("express");
-const bodyParser = require("body-parser");
 const ejs = require("ejs");
 var async = require("async");
 const crypto = require("crypto");
@@ -48,7 +47,7 @@ const forgetPwLimit = limiter({windowMs: 600000, limit: 3, handler: function (re
 
 const app = express();
 app.set('view engine', 'ejs');
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(express.urlencoded({extended: true}));
 app.use(express.static("public"));
 app.use(helmet.contentSecurityPolicy({
         directives: {
