@@ -32,6 +32,7 @@ const emailer = nodemailer.createTransport({
     }
 });
 
+const censoredAlbums = require("./scripts/censoredAlbums");
 const swearFilter = require("swearfilter");
 const filter = new swearFilter({
     smartDetect: true,
@@ -223,7 +224,7 @@ app.get("/account", function (req, res) {
             }
             res.render("account", message);
         }
-        else if (req.user.googleId !== undefined) {
+        else {
             const message = {
                 displaynameUpdate: displaynameUpdate,
                 emailUpdate: emailUpdate,
@@ -232,7 +233,7 @@ app.get("/account", function (req, res) {
                 list: req.user.displayname
             }
             res.render("account", message);
-        } else res.redirect("/account");
+        }
     }
     else res.redirect("/login");
 });
@@ -553,7 +554,6 @@ app.get("/album/:albumId", function (req, res) {
                     artistName = data.artists[0].name;
                     albumName = data.title;
                     
-                    const censoredAlbums = require("./scripts/censoredAlbums");
                     if (censoredAlbums.includes(parseInt(album))) albumArt = "/censored.png";
                     else if (album == "24535" && data.images?.[5]?.uri) albumArt = data.images[5].uri; //alternate album cover
                     else if (data.images?.[0]?.uri) albumArt = data.images[0].uri;
@@ -618,7 +618,6 @@ app.get("/album/:albumId", function (req, res) {
                     }
                     
                     if (req.isAuthenticated()) {
-                        var addAlbum = req.body.add;
                         var duplicate = req.query.duplicate;
                         res.render("album", {
                             logged: true,
@@ -1192,7 +1191,6 @@ app.post("/album/:albumId", function (req, res) {
                             artistName = data.artists[0].name;
                             albumName = data.title;
                             
-                            const censoredAlbums = require("./scripts/censoredAlbums");
                             if (censoredAlbums.includes(parseInt(album))) albumArt = "/censored.png";
                             else if (album == "24535" && data.images?.[5]?.uri) albumArt = data.images[5].uri; //alternate album cover for specific album
                             else if (data.images?.[0]?.uri) albumArt = data.images[0].uri;
