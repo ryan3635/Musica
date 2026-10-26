@@ -444,54 +444,26 @@ app.get("/userProfile/:displayName", function (req, res) {
                                     var gotoError = req.query.gotoError;
                                     var error = req.query.error;
 
-                                    var logged = false;
-                                    if (req.user) {
-                                        if (userId.displayname === req.user.displayname) logged = true;
-                                        else logged = false;
-                                    }
-                                    
-                                    if (req.user) {
-                                        res.render("userProfile", {
-                                            albumList: results,
-                                            added: added,
-                                            removed: removed,
-                                            reordered: reordered,
-                                            reorder: reorder,
-                                            reorderError: reorderError,
-                                            samePos: samePos,
-                                            page: page,
-                                            goto: goto,
-                                            gotoError: gotoError,
-                                            error: error,
-                                            listSize: listSize,
-                                            pages: pageLimit,
-                                            list: displayName,
-                                            yourList: yourList,
-                                            logged: logged,
-                                            loggedToolbar: true
-                                        });
-                                    }
-                                    else {
-                                        res.render("userProfile", {
-                                            albumList: results,
-                                            added: added,
-                                            removed: removed,
-                                            reordered: reordered,
-                                            reorder: reorder,
-                                            reorderError: reorderError,
-                                            samePos: samePos,
-                                            page: page,
-                                            goto: goto,
-                                            gotoError: gotoError,
-                                            error: error,
-                                            listSize: listSize,
-                                            pages: pageLimit,
-                                            list: displayName,
-                                            yourList: yourList,
-                                            logged: logged,
-                                            loggedToolbar: false
-                                        });
-                                    }
+                                    const logged = !!req.user && userId.displayname === req.user.displayname;
+                                    res.render("userProfile", {
+                                        albumList: results,
+                                        added: added,
+                                        removed: removed,
+                                        reordered: reordered,
+                                        reorder: reorder,
+                                        reorderError: reorderError,
+                                        samePos: samePos,
+                                        page: page,
+                                        goto: goto,
+                                        gotoError: gotoError,
+                                        error: error,
+                                        listSize: listSize,
+                                        pages: pageLimit,
+                                        list: displayName,
+                                        yourList: yourList,
+                                        logged: logged,
+                                        loggedToolbar: !!req.user
+                                    });
                                 }
                             }
                         });
