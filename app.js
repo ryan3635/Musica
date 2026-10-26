@@ -1,5 +1,13 @@
 "use strict";
 require('dotenv').config();
+
+const dbUrl = process.env.NODE_ENV === "test" ? process.env.MONGODB_TEST_URL : process.env.MONGODB_URL;
+if (!dbUrl) {
+    throw new Error(
+        process.env.NODE_ENV === "test" ? "MONGODB_TEST_URL is not set in .env" : "MONGODB_URL is not set in .env"
+    );
+}
+
 const express = require("express");
 const ejs = require("ejs");
 var async = require("async");
@@ -13,7 +21,7 @@ const mongo = require("connect-mongo").default;
 const mongoose = require("mongoose");
 mongoose.set("strictQuery", false);
 mongoose.set('sanitizeFilter', true);
-mongoose.connect(process.env.MONGODB_URL, {useNewUrlParser: true, useUnifiedTopology: true});
+mongoose.connect(dbUrl, {useNewUrlParser: true, useUnifiedTopology: true});
 const User = require("./models/user");
 const Album = require("./models/album");
 
@@ -60,7 +68,7 @@ app.use(helmet.contentSecurityPolicy({
 
 app.use(session({
     secret: process.env.SESSION_SECRET,
-    store: mongo.create({mongoUrl: process.env.MONGODB_URL}),
+    store: mongo.create({mongoUrl: dbUrl}),
     resave: false,
     saveUninitialized: false,
     cookie: {   //httpOnly: false, secure: true; once posted online (using https)
