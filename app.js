@@ -1208,6 +1208,10 @@ app.post("/albumSearch", function (req, res) {
                 db.search({master_id: discogsId}).then(function (searchResult) {
                     if (searchResult.results.length > 0) res.redirect("/album/" + searchResult.results[0].master_id);
                     else res.redirect("/albumSearch?discogsSearch=true&notFound=true");
+                })
+                .catch(function (err) {
+                    console.log(err);
+                    res.redirect("/albumSearch?discogsSearch=true&error=true");
                 });
             }
         }
@@ -1248,6 +1252,10 @@ app.post("/albumSearch", function (req, res) {
                 else {
                     res.redirect("/albumSearch?notFound=true");
                 }
+            })
+            .catch(function (err) {
+                console.log(err);
+                res.redirect("/albumSearch?error=true");
             });
         }
     }
