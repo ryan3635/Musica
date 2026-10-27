@@ -76,7 +76,7 @@ app.use(session({
     store: mongo.create({mongoUrl: dbUrl}),
     resave: false,
     saveUninitialized: false,
-    cookie: {   //httpOnly: false, secure: true; once posted online (using https)
+    cookie: {   //secure: true; once posted online (using https)
         httpOnly: true,
         secure: false
     }
