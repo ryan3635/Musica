@@ -21,7 +21,12 @@ const mongo = require("connect-mongo").default;
 const mongoose = require("mongoose");
 mongoose.set("strictQuery", false);
 mongoose.set('sanitizeFilter', true);
-mongoose.connect(dbUrl, {useNewUrlParser: true, useUnifiedTopology: true});
+mongoose.connect(dbUrl, {useNewUrlParser: true, useUnifiedTopology: true})
+    .catch(function (err) {
+        console.log("Unable to connect to database:", err.message);
+        process.exit(1);
+    }
+);
 const User = require("./models/user");
 const Album = require("./models/album");
 
@@ -198,9 +203,11 @@ app.get("/logout", function (req, res) {
         }
         else {
             req.session.destroy(function (err) {
-                if (err) console.log(err);
+                if (err) {
+                    console.log(err);
+                    res.redirect("/");
+                }
                 else res.render("home", {loggedOut: true});
-                
             });
         }
     });
@@ -277,7 +284,10 @@ app.get("/passwordReset", function (req, res) {
             var hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
             User.findOne({"_id": userID, token: hashedToken, awaitingReset: true, tokenExpire: mongoose.trusted({$gt: Date.now()})}, function (err, result) {
-                if (err) console.log(err);
+                if (err) {
+                    console.log(err);
+                    res.redirect("/passwordReset?error=true");
+                }
                 else {
                     if (!result) res.redirect("/forget?tokenExpired=true");
                     else {
@@ -431,10 +441,16 @@ app.get("/userProfile/:displayName", function (req, res) {
             else {
                 const albums = ((page - 1) * 10) + 1;
                 Album.find({"position": mongoose.trusted({$gte: albums}), "userID": userID}, null, {sort: {position: 1}}, function (err, results) {
-                    if (err) console.log(err);
+                    if (err) {
+                        console.log(err);
+                        res.redirect("/userProfile?error=true");
+                    }
                     else {
                         Album.countDocuments({"userID": userID}, function (err, count) {
-                            if (err) console.log(err);
+                            if (err) {
+                                console.log(err);
+                                res.redirect("/userProfile?error=true");
+                            }
                             else {
                                 const listSize = count;
                                 const pageLimit = (Math.trunc(count/10) + 1);
@@ -658,21 +674,33 @@ app.post("/register", userAuthLimit, function (req, res) {
             const regex = /^[a-zA-Z0-9]+$/;
             const validName = regex.test(displayname);
             User.countDocuments({"username": username}, function (err, count) {
-                if (err) console.log(err);
+                if (err) {
+                    console.log(err);
+                    res.redirect("/register?error=true");
+                }
                 else if (count >= 1) res.redirect("/register?duplicateEmail=true");
                 else {
                     displayname = filter.censor(displayname);
                     User.countDocuments({"displayname": displayname}, function (err, count) {
-                        if (err) console.log(err);
+                        if (err) {
+                            console.log(err);
+                            res.redirect("/register?error=true");
+                        }
                         else if (count >= 1) res.redirect("/register?duplicateDisplayname=true");
                         else if (displayname.includes("*") || displayname.length > 20) res.redirect("/register?displaynameSwear=true");
                         else if (validName === false || displayname.length > 20) res.redirect("/register?displaynameError=true");
                         else {
                             bcrypt.genSalt(10, function (err, salt) {
-                                if (err) console.log(err);
+                                if (err) {
+                                    console.log(err);
+                                    res.redirect("/register?error=true");
+                                }
                                 else {
                                     bcrypt.hash(passwordNew2, salt, function (err, hash) {
-                                        if (err) res.redirect("/register?duplicatePwError=true");
+                                        if (err) {
+                                            console.log(err);
+                                            res.redirect("/register?duplicatePwError=true");
+                                        }
                                         else {
                                             const newUser = new User({
                                                 username: username,
@@ -705,22 +733,34 @@ app.post("/forget", forgetPwLimit, function (req, res) {
     if (typeof username !== "string" || !username) res.redirect("/forget?error=true");
     else {
         User.countDocuments({username: username}, function (err, count) {
-            if (err) console.log(err);
+            if (err) {
+                console.log(err);
+                res.redirect("/forget?error=true");
+            }
             else if (count < 1) res.redirect("/forget?noEmail=true");
             else {
                 User.findOne({username: username}, {_id: 1}, function (err, id) {
-                    if (err) console.log(err);
+                    if (err) {
+                        console.log(err);
+                        res.redirect("/forget?error=true");
+                    }
                     else {
                         var token = "";
                         crypto.randomBytes(20, function (err, bytes) {
-                            if (err) console.log(err);
+                            if (err) {
+                                console.log(err);
+                                res.redirect("/forget?error=true");
+                            }
                             else {
                                 const expireTime = Date.now() + 600000;
                                 token = bytes.toString('hex');
                                 var hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
                                 User.updateOne({"_id": id}, {"token": hashedToken, "tokenExpire": expireTime, "awaitingReset": true}, function (err, result) {
-                                    if (err) console.log(err);
+                                    if (err) {
+                                        console.log(err);
+                                        res.redirect("/forget?error=true");
+                                    }
                                     else {
                                         const email = {
                                         from: process.env.NODEMAILER_USER,
@@ -730,7 +770,10 @@ app.post("/forget", forgetPwLimit, function (req, res) {
                                         html: "<h2>Password Reset</h2><p>Click the link below to reset your Musica account password. If you did not request this, please ingore this email.</p><br><a href='" + process.env.URL + "/passwordReset?userID=" + id._id + "&token=" + token + "'>Musica Password Reset</a>"
                                         }
                                         emailer.sendMail(email, function (err, info) {
-                                            if (err) console.log(err);
+                                            if (err) {
+                                                console.log(err);
+                                                res.redirect("/forget?error=true");
+                                            }
                                         });
                                         res.redirect("/forget?entered=true");
                                     }
@@ -759,18 +802,30 @@ app.post("/passwordReset", function (req, res) {
                 if (passwordNew1 !== passwordNew2) res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&duplicatePwError=true");
                 else {
                     User.findOne({"_id": userID, token: hashedToken, awaitingReset: true, tokenExpire: mongoose.trusted({$gt: Date.now()})}, function (err, user) {
-                        if (err) console.log(err);
+                        if (err) {
+                            console.log(err);
+                            res.redirect("/passwordReset?error=true");
+                        }
                         else if (!user) res.redirect("/forget?tokenExpired=true");
                         else {
                             bcrypt.genSalt(10, function (err, salt) {
-                                if (err) console.log(err);
+                                if (err) {
+                                    console.log(err);
+                                    res.redirect("/passwordReset?error=true");
+                                }
                                 else {
                                     bcrypt.hash(passwordNew2, salt, function (err, hash) {
-                                        if (err) console.log(err);
+                                        if (err) {
+                                            console.log(err);
+                                            res.redirect("/passwordReset?error=true");
+                                        }
                                         else {
                                             User.updateOne({"_id": userID}, {$set: {password: hash}, 
                                                                 $unset: {token: 1, tokenExpire: 1, awaitingReset: 1}}, function (err, result) {
-                                                if (err) console.log(err);
+                                                if (err) {
+                                                    console.log(err);
+                                                    res.redirect("/passwordReset?error=true");
+                                                }
                                                 else res.redirect("/login?pwReset=true");
                                             });
                                         }
@@ -805,21 +860,33 @@ app.post("/change/:type", function (req, res) {
                 else {
                     displayname = filter.censor(displayname);
                     User.countDocuments({"displayname": displayname}, function (err, count) {
-                        if (err) console.log(err);
+                        if (err) {
+                            console.log(err);
+                            res.redirect("/change/displayname?error=true");
+                        }
                         else if (count >= 1) res.redirect("/change/displayname?duplicateDisplayname=true");
                         else if (displayname.includes("*") || displayname.length > 20) res.redirect("/change/displayname?displaynameSwear=true");
                         else if (validName === false || displayname.length > 20) res.redirect("/change/displayname?displaynameError=true");
                         else {
                             User.findOne({"_id": req.user._id}, function (err, user) {
-                                if (err) console.log(err);
+                                if (err) {
+                                    console.log(err);
+                                    res.redirect("/change/displayname?error=true");
+                                }
                                 else {
                                     bcrypt.compare(password, user.password, function (err, result) {
-                                        if (err) res.redirect("/change/displayname?pwError=true");
+                                        if (err) {
+                                            console.log(err);
+                                            res.redirect("/change/displayname?pwError=true");
+                                        }
                                         else if (result === false) res.redirect("/change/displayname?pwError=true");
                                         else {
                                             if (displayname === "") res.redirect("/change/displayname?error=true");
                                             User.updateOne({"_id": req.user._id}, {$set: {displayname: displayname}}, function (err, result) {
-                                                if (err) console.log(err);
+                                                if (err) {
+                                                    console.log(err);
+                                                    res.redirect("/change/displayname?error=true");
+                                                }
                                                 else res.redirect("/account?displaynameUpdate=true");
                                             });
                                         }
@@ -835,13 +902,19 @@ app.post("/change/:type", function (req, res) {
                 else {
                     displayname = filter.censor(displayname);
                     User.countDocuments({"displayname": displayname}, function (err, count) {
-                        if (err) console.log(err);
+                        if (err) {
+                            console.log(err);
+                            res.redirect("/change/displayname?error=true");
+                        }
                         else if (count >= 1) res.redirect("/change/displayname?duplicateDisplayname=true");
                         else if (displayname.includes("*") || displayname.length > 20) res.redirect("/change/displayname?displaynameSwear=true");
                         else if (validName === false || displayname.length > 20) res.redirect("/change/displayname?displaynameError=true");
                         else {
                             User.updateOne({"_id": req.user._id}, {$set: {displayname: displayname}}, function (err, result) {
-                                if (err) console.log(err);
+                                if (err) {
+                                    console.log(err);
+                                    res.redirect("/change/displayname?error=true");
+                                }
                                 else res.redirect("/userHome?googleDisplayname=true");
                             });
                         }
@@ -856,18 +929,30 @@ app.post("/change/:type", function (req, res) {
             else if (!validator.isEmail(email)) res.redirect("/change/email?error=true");
             else {
                 User.countDocuments({"username": email}, function (err, count) {
-                    if (err) console.log(err);
+                    if (err) {
+                        console.log(err);
+                        res.redirect("/change/email?error=true");
+                    }
                     else if (count >= 1) res.redirect("/change/email?duplicateEmail=true");
                     else {
                         User.findOne({"_id": req.user._id}, function (err, user) {
-                            if (err) console.log(err);
+                            if (err) {
+                                console.log(err);
+                                res.redirect("/change/email?error=true");
+                            }
                             else {
                                 bcrypt.compare(password, user.password, function (err, result) {
-                                    if (err) res.redirect("/change/email?pwError=true");
+                                    if (err) {
+                                        console.log(err);
+                                        res.redirect("/change/email?pwError=true");
+                                    }
                                     else if (result === false) res.redirect("/change/email?pwError=true");
                                     else {
                                         User.updateOne({"_id": req.user._id}, {$set: {username: email}}, function (err, result) {
-                                            if (err) console.log(err);
+                                            if (err) {
+                                                console.log(err);
+                                                res.redirect("/change/email?error=true");
+                                            }
                                             else res.redirect("/account?emailUpdate=true");
                                         });
                                     }
@@ -884,21 +969,36 @@ app.post("/change/:type", function (req, res) {
             else if (typeof password !== "string" || !password || typeof passwordNew1 !== "string" || !passwordNew1 || typeof passwordNew2 !== "string" || !passwordNew2) res.redirect("/change/password?error=true");
             else {
                 User.findOne({"_id": req.user._id}, function (err, user) {
-                    if (err) console.log(err);
+                    if (err) {
+                        console.log(err);
+                        res.redirect("/change/password?error=true");
+                    }
                     else {
                         bcrypt.compare(password, user.password, function (err, result) {
-                            if (err) res.redirect("/change/password?pwError=true");
+                            if (err) {
+                                console.log(err);
+                                res.redirect("/change/password?pwError=true");
+                            }
                             else if (result === false) res.redirect("/change/password?pwError=true");
                             else if (passwordNew1 !== passwordNew2) res.redirect("/change/password?duplicatePwError=true");
                             else {
                                 bcrypt.genSalt(10, function (err, salt) {
-                                    if (err) console.log(err);
+                                    if (err) {
+                                        console.log(err);
+                                        res.redirect("/change/password?error=true");
+                                    }
                                     else {
                                         bcrypt.hash(passwordNew2, salt, function (err, hash) {
-                                            if (err) res.redirect("/change/password?duplicatePwError=true");
+                                            if (err) {
+                                                console.log(err);
+                                                res.redirect("/change/password?duplicatePwError=true");
+                                            }
                                             else {
                                                 User.updateOne({"_id": req.user._id}, {$set: {password: hash}}, function (err, result) {
-                                                    if (err) console.log(err);
+                                                    if (err) {
+                                                        console.log(err);
+                                                        res.redirect("/change/password?error=true");
+                                                    }
                                                     else res.redirect("/account?passwordUpdate=true");
                                                 });
                                             }
@@ -927,7 +1027,7 @@ app.post("/userProfile/:displayName", function (req, res) {
     User.findOne({displayname: displayName}, function (err, userId) {
         if (err) {
             console.log(err);
-            res.redirect("/");
+            res.redirect(displayName + "?page=1&error=true");
         }
         else if (!userId) res.redirect("/");
         else {
@@ -938,7 +1038,7 @@ app.post("/userProfile/:displayName", function (req, res) {
                 Album.countDocuments({"userID": userID}, function (err, count) {
                     if (err) {
                         console.log(err);
-                        res.redirect(displayName + "?page=1");
+                        res.redirect(displayName + "?page=1&error=true");
                     }
                     else {
                         const finalPage = (Math.trunc(count/10) + 1);
@@ -975,20 +1075,29 @@ app.post("/userProfile/:displayName", function (req, res) {
                     Album.findOne({"userID": userID, albumID: albumRemove}, {position: 1}, function (err, albumPos) {
                         if (err) {
                             console.log(err);
-                            res.redirect(displayName + "?error=true");
+                            res.redirect(displayName + "?page=1&error=true");
                         }
                         else if (!albumPos) res.redirect(displayName + "?error=true");
                         else {
                             Album.updateMany({"userID": userID, "position": mongoose.trusted({$gt: albumPos.position})}, {$inc: {position: -1}}, function (err, result) {
-                                if (err) console.log(err);
+                                if (err) {
+                                    console.log(err);
+                                    res.redirect(displayName + "?page=1&error=true");
+                                }
                                 else {
                                     Album.deleteOne({"userID": userID, albumID: albumRemove}, function (err, result) {
-                                        if (err) console.log(err);
+                                        if (err) {
+                                            console.log(err);
+                                            res.redirect(displayName + "?page=1&error=true");
+                                        }
                                         else {
                                             var page = (Math.trunc(albumPos.position/10) + 1);
                                             if (albumPos.position % 10 === 0) page--;
                                             Album.countDocuments({"userID": userID}, function (err, count) {
-                                                if (err) console.log(err);
+                                                if (err) {
+                                                    console.log(err);
+                                                    res.redirect(displayName + "?page=1&error=true");
+                                                }
                                                 else {
                                                     if ((count % 10) === 0 && count >= 10) res.redirect(displayName + "?page=" + (page - 1) + "&reorder=true&removed=true");
                                                     else res.redirect(displayName + "?page=" + page + "&reorder=true&removed=true");
@@ -1013,7 +1122,7 @@ app.post("/userProfile/:displayName", function (req, res) {
                     Album.findOne({"userID": userID, albumID: reorderedAlbum}, {albumID: 1, position: 1}, function (err, id) {
                         if (err) {
                             console.log(err);
-                            res.redirect(displayName + "?page=1");
+                            res.redirect(displayName + "?page=1&error=true");
                         }
                         else if (!id) res.redirect(displayName + "?page=1&reorderError=true");
                         else {
@@ -1023,7 +1132,10 @@ app.post("/userProfile/:displayName", function (req, res) {
                             const currentId = id.albumID;
 
                             Album.countDocuments({"userID": userID}, function (err, count) {
-                                if (err) console.log(err);
+                                if (err) {
+                                    console.log(err);
+                                    res.redirect(displayName + "?page=1&error=true");
+                                }
                                 else {
                                     if (newPos <= 0 || isNaN(newPos) || newPos > count) res.redirect(displayName + "?page=" + page + "&reorder=true&reorderError=true");
                                     else if (newPos === currentPos) res.redirect(displayName + "?page=" + page + "&reorder=true&samePos=true");
@@ -1150,7 +1262,10 @@ app.post("/album/:albumId", function (req, res) {
         if (num === false) res.redirect("/albumSearch?notFound=true");
         else {
             Album.countDocuments({"userID": req.user._id, "albumID": album}, function (err, result) {
-                if (err) console.log(err);
+                if (err) {
+                    console.log(err);
+                    res.redirect("/albumSearch?error=true");
+                }
                 else if (result > 0) res.redirect("/album/" + album + "?duplicate=true");
                 else {
                     var artistName = "";
@@ -1211,7 +1326,10 @@ app.post("/album/:albumId", function (req, res) {
                             var addAlbum = req.body.add;
                             if (addAlbum === "added") {
                                 Album.countDocuments({"userID": req.user._id}, function (err, count) {
-                                    if (err) console.log(err);
+                                    if (err) {
+                                        console.log(err);
+                                        res.redirect("/albumSearch?error=true");
+                                    }
                                     else {
                                         const albumAdd = new Album({
                                             albumID: album,
@@ -1228,7 +1346,7 @@ app.post("/album/:albumId", function (req, res) {
                                         albumAdd.save(function (err) {
                                             if (err) {
                                                 console.log(err);
-                                                res.redirect("/albumSearch?notFound=true")
+                                                res.redirect("/albumSearch?error=true")
                                             }
                                             else {
                                                 const page = Math.trunc(count/10);
