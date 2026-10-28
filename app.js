@@ -1384,7 +1384,11 @@ app.use(function (err, req, res, next) {
     res.status(500).render("pageError");
 });
 
-app.listen(process.env.PORT || 3000, function () {
+app.listen(process.env.PORT || 3000, function (err) {
+    if (err) {
+        console.log("Server cannot be started:", err.message);
+        process.exit(1);
+    }
     console.log("Server started!");
     setInterval(function() {
         User.find({awaitingReset: true}, function (err, user) {
