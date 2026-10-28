@@ -1,0 +1,16 @@
+diff --git a/node_modules/disconnect/lib/client.js b/node_modules/disconnect/lib/client.js
+index 0e50b15..059625a 100644
+--- a/node_modules/disconnect/lib/client.js
++++ b/node_modules/disconnect/lib/client.js
+@@ -268,7 +268,10 @@ DiscogsClient.prototype._request = function(options, callback) {
+             doRequest = function() {
+                 client._rawRequest(options, function(err, data, rateLimit) {
+                     if (data && options.json && (data.indexOf('<!') !== 0)) {
+-                        data = JSON.parse(data);
++                        try {data = JSON.parse(data);}
++                        catch (parseError) {
++                            return callback(parseError, null, rateLimit);
++                        }
+                     }
+                     callback(err, data, rateLimit);
+                 });
