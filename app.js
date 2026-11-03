@@ -10,7 +10,6 @@ if (!dbUrl) {
 
 const express = require("express");
 const ejs = require("ejs");
-var async = require("async");
 const crypto = require("crypto");
 const validator = require("validator");
 const helmet = require("helmet");
@@ -1119,17 +1118,17 @@ app.post("/userProfile/:displayName", function (req, res) {
                 else {
                     var newPos = req.body.newPos;
                     newPos = parseInt(newPos);
-                    Album.findOne({"userID": userID, albumID: reorderedAlbum}, {albumID: 1, position: 1}, function (err, id) {
+                    Album.findOne({"userID": userID, albumID: reorderedAlbum}, {albumID: 1, position: 1}, function (err, album) {
                         if (err) {
                             console.log(err);
                             res.redirect(displayName + "?page=1&error=true");
                         }
-                        else if (!id) res.redirect(displayName + "?page=1&reorderError=true");
+                        else if (!album) res.redirect(displayName + "?page=1&reorderError=true");
                         else {
-                            var page = (Math.trunc(id.position/10) + 1);
-                            if ((id.position % 10) === 0) page--;
-                            const currentPos = id.position;
-                            const currentId = id.albumID;
+                            const currentPos = album.position;
+                            const currentId = album.albumID;
+                            var page = (Math.trunc(currentPos/10) + 1);
+                            if ((currentPos % 10) === 0) page--;
 
                             Album.countDocuments({"userID": userID}, function (err, count) {
                                 if (err) {
@@ -1140,43 +1139,45 @@ app.post("/userProfile/:displayName", function (req, res) {
                                     if (newPos <= 0 || isNaN(newPos) || newPos > count) res.redirect(displayName + "?page=" + page + "&reorder=true&reorderError=true");
                                     else if (newPos === currentPos) res.redirect(displayName + "?page=" + page + "&reorder=true&samePos=true");
                                     else {
+                                        page = (Math.trunc(newPos/10) + 1);
+                                        if ((newPos % 10) === 0) page--;
+                                        //lower rank of album; other albums increase in rank
                                         if (newPos > currentPos) {
-                                            //lower rank of album; other albums increase in rank
-                                            var newPositionArray = new Array();
-                                            for (let i = currentPos; i <= newPos; i++) {
-                                                newPositionArray.push(i);
-                                            }
-                                            async.eachSeries(newPositionArray, async function (pos, done) {
-                                                const shiftUp = await Album.updateOne({"userID": userID, "position": pos}, {$set: {position: pos - 1}}, done);
-                                                if (pos === newPos) {
-                                                    newPositionArray = [];
-                                                    const final = await Album.updateOne({"userID": userID, "albumID": currentId}, {$set: {position: newPos}});
-                                                    return final;
+                                            Album.updateMany({"userID": userID, "position": mongoose.trusted({$gt: currentPos, $lte: newPos})}, {$inc: {position: -1}}, function (err, result) {
+                                                if (err) {
+                                                    console.log(err);
+                                                    res.redirect(displayName + "?page=1&error=true");
                                                 }
-                                                else return shiftUp;
+                                                else {
+                                                    Album.updateOne({"userID": userID, "albumID": currentId}, {"position": newPos}, function (err, result) {
+                                                        if (err) {
+                                                            console.log(err);
+                                                            res.redirect(displayName + "?page=1&error=true");
+                                                        }
+                                                        else res.redirect(displayName + "?page=" + page + "&reordered=true&reorder=true");
+                                                    });
+                                                }
                                             });
                                         }
-                                        else {
-                                            //increase rank of album; other albums decrease in rank
-                                            var newPositionArray = new Array();
-                                            for (let i = currentPos; i >= newPos; i--) {
-                                                newPositionArray.push(i);
-                                            }
-                                            async.eachSeries(newPositionArray, async function (pos, done) {
-                                                const shiftDown = await Album.updateOne({"userID": userID, "position": pos}, {$set: {position: pos + 1}}, done);
-                                                if (pos === newPos) {
-                                                    newPositionArray = [];
-                                                    const final = await Album.updateOne({"userID": userID, "albumID": currentId}, {$set: {position: newPos}});
-                                                    return final;
+                                        //increase rank of album; other albums decrease in rank
+                                        else if (newPos < currentPos) {
+                                            Album.updateMany({"userID": userID, "position": mongoose.trusted({$gte: newPos, $lt: currentPos})}, {$inc: {position: +1}}, function (err, result) {
+                                                if (err) {
+                                                    console.log(err);
+                                                    res.redirect(displayName + "?page=1&error=true");
                                                 }
-                                                else return shiftDown;
+                                                else {
+                                                    Album.updateOne({"userID": userID, "albumID": currentId}, {"position": newPos}, function (err, result) {
+                                                        if (err) {
+                                                            console.log(err);
+                                                            res.redirect(displayName + "?page=1&error=true");
+                                                        }
+                                                        else res.redirect(displayName + "?page=" + page + "&reordered=true&reorder=true");
+                                                    });
+                                                }
                                             });
                                         }
-                                        setTimeout(function () {
-                                            page = (Math.trunc(newPos/10) + 1);
-                                            if ((newPos % 10) === 0) page--;
-                                            res.redirect(displayName + "?page=" + page + "&reordered=true&reorder=true");
-                                        }, 1250);
+                                        else res.redirect(displayName + "?page=1&error=true");
                                     }
                                 }
                             });
