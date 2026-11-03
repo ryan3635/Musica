@@ -12,9 +12,12 @@ const userSchema = new mongoose.Schema({
 
 const passportLocalMongoose = require("passport-local-mongoose");
 const findOrCreate = require("mongoose-findorcreate");
-
 userSchema.plugin(passportLocalMongoose);
 userSchema.plugin(findOrCreate);
-const User = new mongoose.model("User", userSchema);
 
+userSchema.index({username: 1}, {unique: true, sparse: true});
+userSchema.index({displayname: 1}, {unique: true, sparse: true});
+userSchema.index({googleId: 1}, {unique: true, sparse: true});
+
+const User = new mongoose.model("User", userSchema);
 module.exports = User;

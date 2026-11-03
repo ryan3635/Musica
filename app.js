@@ -708,8 +708,12 @@ app.post("/register", userAuthLimit, function (req, res) {
                                             });
                                             newUser.save(function (err) {
                                                 if (err) {
-                                                    console.log(err);
-                                                    res.redirect("/register?error=true");
+                                                    if (err.code === 11000 && err.keyPattern.displayname) res.redirect("/register?duplicateDisplayname=true");
+                                                    else if (err.code === 11000) res.redirect("/register?duplicateEmail=true");
+                                                    else {
+                                                        console.log(err);
+                                                        res.redirect("/register?error=true");
+                                                    }
                                                 }
                                                 else res.redirect("/login?accCreated=true");
                                             });
@@ -1354,8 +1358,11 @@ app.post("/album/:albumId", function (req, res) {
                                         });
                                         albumAdd.save(function (err) {
                                             if (err) {
-                                                console.log(err);
-                                                res.redirect("/albumSearch?error=true")
+                                                if (err.code === 11000) res.redirect("/album/" + album + "?duplicate=true");
+                                                else {
+                                                    console.log(err);
+                                                    res.redirect("/albumSearch?error=true");
+                                                }
                                             }
                                             else {
                                                 const page = Math.trunc(count/10);

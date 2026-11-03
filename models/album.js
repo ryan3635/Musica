@@ -13,6 +13,7 @@ const albumSchema = new mongoose.Schema({
     trackLength: [String]
 });
 
-const Album = new mongoose.model("Album", albumSchema);
+albumSchema.index({userID: 1, albumID: 1}, {unique: true});
 
+const Album = new mongoose.model("Album", albumSchema);
 module.exports = Album;
