@@ -14,7 +14,7 @@ const crypto = require("crypto");
 const validator = require("validator");
 const helmet = require("helmet");
 const Discogs = require("disconnect").Client;
-var db = new Discogs({consumerKey: process.env.DISCOGS_API_KEY, consumerSecret: process.env.DISCOGS_SECRET}).database();
+const db = new Discogs({consumerKey: process.env.DISCOGS_API_KEY, consumerSecret: process.env.DISCOGS_SECRET}).database();
 
 const mongo = require("connect-mongo").default;
 const mongoose = require("mongoose");
@@ -87,24 +87,28 @@ passport.serializeUser(function (user, done) {
     done(null, user.id);
 });
 
-passport.deserializeUser (function (id, done) {
-    User.findById(id, function (err, user) {
-        done(err, user);
-    });
+passport.deserializeUser (async function (id, done) {
+    try {
+        const user = await User.findById(id);
+        done(null, user);
+    } catch (err) {
+        done(err);
+    }
 });
 
-passport.use(new LocalStrategy (function (username, password, done) {
+passport.use(new LocalStrategy (async function (username, password, done) {
     if (typeof username !== "string" || typeof password !== "string") return done(null, false);
-    User.findOne({username: username}, function (err, user) {
-        if (err) return done(err);
-        else if (!user) return done(null, false);
-
-        bcrypt.compare(password, user.password, function (err, result) {
-            if (err) return done(err);
-            else if (result === false) return done(null, false);
-            return done(null, user);
-        });
-    });
+    try {
+        const user = await User.findOne({username: username});
+        if (!user) return done(null, false);
+        else {
+            const auth = await bcrypt.compare(password, user.password);
+            if (!auth) return done(null, false);
+            else return done(null, user);
+        }
+    } catch (err) {
+        return done(err);
+    }
 }));
 
 passport.use(new GoogleStrategy({
@@ -112,7 +116,7 @@ passport.use(new GoogleStrategy({
     clientSecret: process.env.CLIENT_SECRET,
     callbackURL: process.env.URL + "/auth/google/userHome",
     userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
-},
+    },
     function (accessToken, refreshToken, profile, done) {
         User.findOrCreate({googleId: profile.id}, function (err, user) {
             return done(err, user);
@@ -135,8 +139,8 @@ app.get("/", function (req, res) {
     if (req.isAuthenticated()) {
         if (req.user.displayname === undefined) res.redirect("/change/displayname");
         else {
-            var loggedIn = req.query.loggedIn;
-            var googleDisplayname = req.query.googleDisplayname;
+            const loggedIn = req.query.loggedIn;
+            const googleDisplayname = req.query.googleDisplayname;
 
             const logged = {
                 loggedIn: loggedIn,
@@ -152,10 +156,10 @@ app.get("/", function (req, res) {
 app.get("/login", function (req, res) {
     if (req.isAuthenticated()) res.render("loggedIn");
     else {
-        var error = req.query.error;
-        var limitError = req.query.limitError;
-        var accCreated = req.query.accCreated;
-        var pwReset = req.query.pwReset;
+        const error = req.query.error;
+        const limitError = req.query.limitError;
+        const accCreated = req.query.accCreated;
+        const pwReset = req.query.pwReset;
 
         const errCheck = {
             page: "Login",
@@ -173,12 +177,12 @@ app.get("/register", function (req, res) {
     if (req.isAuthenticated()) {
         res.render("loggedIn");
     } else {
-        var error = req.query.error;
-        var duplicatePwError = req.query.duplicatePwError;
-        var duplicateEmail = req.query.duplicateEmail;
-        var duplicateDisplayname = req.query.duplicateDisplayname;
-        var displaynameError = req.query.displaynameError;
-        var displaynameSwear = req.query.displaynameSwear;
+        const error = req.query.error;
+        const duplicatePwError = req.query.duplicatePwError;
+        const duplicateEmail = req.query.duplicateEmail;
+        const duplicateDisplayname = req.query.duplicateDisplayname;
+        const displaynameError = req.query.displaynameError;
+        const displaynameSwear = req.query.displaynameSwear;
 
         const errCheck = {
             page: "Register",
@@ -224,9 +228,9 @@ app.get("/loggedIn", function (req, res) {
 
 app.get("/account", function (req, res) {
     if (req.isAuthenticated()) {
-        var displaynameUpdate = req.query.displaynameUpdate;
-        var emailUpdate = req.query.emailUpdate;
-        var passwordUpdate = req.query.passwordUpdate;
+        const displaynameUpdate = req.query.displaynameUpdate;
+        const emailUpdate = req.query.emailUpdate;
+        const passwordUpdate = req.query.passwordUpdate;
 
         if (req.user.googleId === undefined) {
             const message = {
@@ -255,11 +259,11 @@ app.get("/account", function (req, res) {
 
 app.get("/forget", function (req, res) {
     if (!req.isAuthenticated()) {
-        var entered = req.query.entered;
-        var error = req.query.error;
-        var noEmail = req.query.noEmail;
-        var limitError = req.query.limitError;
-        var tokenExpired = req.query.tokenExpired;
+        const entered = req.query.entered;
+        const error = req.query.error;
+        const noEmail = req.query.noEmail;
+        const limitError = req.query.limitError;
+        const tokenExpired = req.query.tokenExpired;
 
         const message = {
             page: "Forget",
@@ -278,9 +282,9 @@ app.get("/forget", function (req, res) {
 app.get("/passwordReset", function (req, res) {
     if (!req.isAuthenticated()) {
         if (typeof req.query.userID === "string" && typeof req.query.token === "string" && req.query.userID && req.query.token) {
-            var userID = req.query.userID;
-            var token = req.query.token;
-            var hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+            const userID = req.query.userID;
+            const token = req.query.token;
+            const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
             User.findOne({"_id": userID, token: hashedToken, awaitingReset: true, tokenExpire: mongoose.trusted({$gt: Date.now()})}, function (err, result) {
                 if (err) {
@@ -290,8 +294,8 @@ app.get("/passwordReset", function (req, res) {
                 else {
                     if (!result) res.redirect("/forget?tokenExpired=true");
                     else {
-                        var error = req.query.error;
-                        var duplicatePwError = req.query.duplicatePwError;
+                        const error = req.query.error;
+                        const duplicatePwError = req.query.duplicatePwError;
 
                         const reset = {
                             error: error,
@@ -312,13 +316,13 @@ app.get("/passwordReset", function (req, res) {
 
 app.get("/change/:type", function (req, res) {
     if (req.isAuthenticated()) {
-        var error = req.query.error;
-        var pwError = req.query.pwError;
-        var duplicatePwError = req.query.duplicatePwError;
-        var duplicateEmail = req.query.duplicateEmail;
-        var duplicateDisplayname = req.query.duplicateDisplayname;
-        var displaynameError = req.query.displaynameError;
-        var displaynameSwear = req.query.displaynameSwear;
+        const error = req.query.error;
+        const pwError = req.query.pwError;
+        const duplicatePwError = req.query.duplicatePwError;
+        const duplicateEmail = req.query.duplicateEmail;
+        const duplicateDisplayname = req.query.duplicateDisplayname;
+        const displaynameError = req.query.displaynameError;
+        const displaynameSwear = req.query.displaynameSwear;
         const type = req.params.type;
 
         if (type === "displayname") {
@@ -399,8 +403,8 @@ app.get("/userHome", function (req, res) {
     if (req.isAuthenticated()) {
         if (req.user.displayname === undefined) res.redirect("/change/displayname");
         else {
-            var loggedIn = req.query.loggedIn;
-            var googleDisplayname = req.query.googleDisplayname;
+            const loggedIn = req.query.loggedIn;
+            const googleDisplayname = req.query.googleDisplayname;
 
             const logged = {
                 loggedIn: loggedIn,
@@ -421,7 +425,7 @@ app.get("/userProfile", function (req, res) {
 
 
 app.get("/userProfile/:displayName", function (req, res) {
-    var displayName = req.params.displayName;
+    const displayName = req.params.displayName;
     const yourList = req.user ? req.user.displayname : undefined;
 
     User.findOne({displayname: displayName}, function (err, userId) {
@@ -432,7 +436,7 @@ app.get("/userProfile/:displayName", function (req, res) {
         else if (!userId) res.redirect("/");
         else {
             const userID = userId._id;
-            var page = req.query.page;
+            const page = req.query.page;
             const regex = /^[0-9]+$/;
             const validPage = regex.test(page);
 
@@ -457,15 +461,15 @@ app.get("/userProfile/:displayName", function (req, res) {
                                 else if (page > pageLimit) res.redirect("/userProfile/" + displayName + "?page=" + pageLimit);
                                 else if (page <= 0) res.redirect("/userProfile/" + displayName + "?page=1");
                                 else {
-                                    var added = req.query.added;
-                                    var removed = req.query.removed;
-                                    var reordered = req.query.reordered;
-                                    var reorder = req.query.reorder;
-                                    var reorderError = req.query.reorderError;
-                                    var samePos = req.query.samePos;
-                                    var goto = req.query.goto;
-                                    var gotoError = req.query.gotoError;
-                                    var error = req.query.error;
+                                    const added = req.query.added;
+                                    const removed = req.query.removed;
+                                    const reordered = req.query.reordered;
+                                    const reorder = req.query.reorder;
+                                    const reorderError = req.query.reorderError;
+                                    const samePos = req.query.samePos;
+                                    const goto = req.query.goto;
+                                    const gotoError = req.query.gotoError;
+                                    const error = req.query.error;
 
                                     const logged = !!req.user && userId.displayname === req.user.displayname;
                                     res.render("userProfile", {
@@ -499,9 +503,9 @@ app.get("/userProfile/:displayName", function (req, res) {
 
 
 app.get("/albumSearch", function (req, res) {
-    var notFound = req.query.notFound;
-    var error = req.query.error;
-    var discogsSearch = req.query.discogsSearch;
+    const notFound = req.query.notFound;
+    const error = req.query.error;
+    const discogsSearch = req.query.discogsSearch;
 
     if (req.isAuthenticated()) {
         res.render("albumSearch", {
@@ -524,16 +528,16 @@ app.get("/albumSearch", function (req, res) {
 
 
 app.get("/album/:albumId", function (req, res) {
-    var album = req.params.albumId;
-    var artistName = "";
-    var albumName = "";
-    var year = "";
-    var albumArt = "";
-    var videoTitle = new Array();
-    var videoLink = new Array();
-    var videoMap = new Map();
-    var genreAlbum = new Array();
-    var tracklist = new Array();
+    const album = req.params.albumId;
+    let artistName = "";
+    let albumName = "";
+    let year = "";
+    let albumArt = "";
+    const videoTitle = new Array();
+    const videoLink = new Array();
+    let videoMap = new Map();
+    const genreAlbum = new Array();
+    const tracklist = new Array();
     
     const regex = /^[0-9]+$/;
     const num = regex.test(album);
@@ -561,7 +565,7 @@ app.get("/album/:albumId", function (req, res) {
                             const artist = artistName + " - ";
                             const artistEnd = " - " + artistName;
                             const title = data.videos[i].title;
-                            var vidTitle = "";
+                            let vidTitle = "";
                             
                             if (title.startsWith(artist) || title.startsWith(artistName + " – ") || title.startsWith(artist.toLowerCase()) || title.startsWith(artistName.toLowerCase() + " – ")) {
                                 vidTitle = title.slice(artist.length, title.length);
@@ -579,8 +583,8 @@ app.get("/album/:albumId", function (req, res) {
                             }
                         }
                         
-                        var videoTitleLower = new Array();
-                        var videoMapTemp = new Map();
+                        const videoTitleLower = new Array();
+                        const videoMapTemp = new Map();
                         
                         for (let k = 0; k < videoTitle.length; k++) {
                             videoTitleLower.push(videoTitle[k].toLowerCase());
@@ -602,7 +606,7 @@ app.get("/album/:albumId", function (req, res) {
                     }
                     
                     if (data.tracklist) {
-                        var trackNumber = 0;
+                        let trackNumber = 0;
                         for (let i = 0; i < data.tracklist.length; i++) {
                             if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
                                 trackNumber++;
@@ -613,7 +617,7 @@ app.get("/album/:albumId", function (req, res) {
                     }
                     
                     if (req.isAuthenticated()) {
-                        var duplicate = req.query.duplicate;
+                        const duplicate = req.query.duplicate;
                         res.render("album", {
                             logged: true,
                             albumID: album,
@@ -629,7 +633,7 @@ app.get("/album/:albumId", function (req, res) {
                         });
                     }
                     else {
-                        var duplicate = req.query.duplicate;
+                        const duplicate = req.query.duplicate;
                         res.render("album", {
                             logged: false,
                             albumID: album,
@@ -656,10 +660,10 @@ app.post("/login", userAuthLimit, passport.authenticate("local", {successRedirec
 
 
 app.post("/register", userAuthLimit, function (req, res) {
-    var username = req.body.username;
-    var displayname = req.body.displayname;
-    var passwordNew1 = req.body.passwordNew1;
-    var passwordNew2 = req.body.passwordNew2;
+    const username = req.body.username;
+    let displayname = req.body.displayname;
+    const passwordNew1 = req.body.passwordNew1;
+    const passwordNew2 = req.body.passwordNew2;
 
     if (typeof username !== "string" || !username || typeof displayname !== "string" || !displayname || typeof passwordNew1 !== "string" || !passwordNew1 || 
         typeof passwordNew2 !== "string" || !passwordNew2) res.redirect("/register?error=true");
@@ -731,7 +735,7 @@ app.post("/register", userAuthLimit, function (req, res) {
 
 
 app.post("/forget", forgetPwLimit, function (req, res) {
-    var username = req.body.username;
+    const username = req.body.username;
 
     if (typeof username !== "string" || !username) res.redirect("/forget?error=true");
     else {
@@ -748,7 +752,7 @@ app.post("/forget", forgetPwLimit, function (req, res) {
                         res.redirect("/forget?error=true");
                     }
                     else {
-                        var token = "";
+                        let token = "";
                         crypto.randomBytes(20, function (err, bytes) {
                             if (err) {
                                 console.log(err);
@@ -757,7 +761,7 @@ app.post("/forget", forgetPwLimit, function (req, res) {
                             else {
                                 const expireTime = Date.now() + 600000;
                                 token = bytes.toString('hex');
-                                var hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+                                const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
                                 User.updateOne({"_id": id}, {"token": hashedToken, "tokenExpire": expireTime, "awaitingReset": true}, function (err, result) {
                                     if (err) {
@@ -795,10 +799,10 @@ app.post("/passwordReset", function (req, res) {
     if (!req.isAuthenticated()) {
         if (typeof req.query.userID === "string" && typeof req.query.token === "string" && req.query.userID && req.query.token) {
             const userID = req.query.userID;
-            var passwordNew1 = req.body.passwordNew1;
-            var passwordNew2 = req.body.passwordNew2;
+            const passwordNew1 = req.body.passwordNew1;
+            const passwordNew2 = req.body.passwordNew2;
             const token = req.query.token;
-            var hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+            const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
             if (typeof passwordNew1 !== "string" || typeof passwordNew2 !== "string" || !passwordNew1 || !passwordNew2) res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&error=true");
             else {
@@ -848,12 +852,12 @@ app.post("/passwordReset", function (req, res) {
 
 app.post("/change/:type", function (req, res) {
     if (req.isAuthenticated()) {
-        var displayname = req.body.displayname;
-        var email = req.body.email;
-        var password = req.body.password;
-        var passwordNew1 = req.body.passwordNew1;
-        var passwordNew2 = req.body.passwordNew2;
-        var type = req.params.type;
+        let displayname = req.body.displayname;
+        const email = req.body.email;
+        const password = req.body.password;
+        const passwordNew1 = req.body.passwordNew1;
+        const passwordNew2 = req.body.passwordNew2;
+        const type = req.params.type;
 
         if (type === "displayname") {
             const regex = /^[a-zA-Z0-9]+$/;
@@ -1020,12 +1024,11 @@ app.post("/change/:type", function (req, res) {
 
 
 app.post("/userProfile/:displayName", function (req, res) {
-    var displayName = req.params.displayName;
-    
-    var end = req.body.end;
-    var goto = req.body.goto;
-    var albumRemove = req.body.remove;
-    var reorderedAlbum = req.body.reordered;
+    const displayName = req.params.displayName;
+    const end = req.body.end;
+    const goto = req.body.goto;
+    const albumRemove = req.body.remove;
+    const reorderedAlbum = req.body.reordered;
 
     User.findOne({displayname: displayName}, function (err, userId) {
         if (err) {
@@ -1094,7 +1097,7 @@ app.post("/userProfile/:displayName", function (req, res) {
                                             res.redirect(displayName + "?page=1&error=true");
                                         }
                                         else {
-                                            var page = (Math.trunc(albumPos.position/10) + 1);
+                                            let page = (Math.trunc(albumPos.position/10) + 1);
                                             if (albumPos.position % 10 === 0) page--;
                                             Album.countDocuments({"userID": userID}, function (err, count) {
                                                 if (err) {
@@ -1120,7 +1123,7 @@ app.post("/userProfile/:displayName", function (req, res) {
                 if (!req.user) res.redirect(displayName + "?page=1");
                 else if (userId.displayname !== req.user.displayname) res.redirect(displayName + "?page=1");
                 else {
-                    var newPos = req.body.newPos;
+                    let newPos = req.body.newPos;
                     newPos = parseInt(newPos);
                     Album.findOne({"userID": userID, albumID: reorderedAlbum}, {albumID: 1, position: 1}, function (err, album) {
                         if (err) {
@@ -1131,7 +1134,7 @@ app.post("/userProfile/:displayName", function (req, res) {
                         else {
                             const currentPos = album.position;
                             const currentId = album.albumID;
-                            var page = (Math.trunc(currentPos/10) + 1);
+                            let page = (Math.trunc(currentPos/10) + 1);
                             if ((currentPos % 10) === 0) page--;
 
                             Album.countDocuments({"userID": userID}, function (err, count) {
@@ -1195,10 +1198,10 @@ app.post("/userProfile/:displayName", function (req, res) {
 
 
 app.post("/albumSearch", function (req, res) {
-    var artistName = req.body.userArtist;
-    var albumName = req.body.userAlbum;
-    var albumYear = req.body.year;
-    var discogsId = req.body.discogsId;
+    const artistName = req.body.userArtist;
+    const albumName = req.body.userAlbum;
+    const albumYear = req.body.year;
+    let discogsId = req.body.discogsId;
 
     if (artistName === "" && albumName === "" && albumYear === "") res.redirect("/albumSearch?error=true");
 
@@ -1224,11 +1227,11 @@ app.post("/albumSearch", function (req, res) {
         else {
             if (artistName === "" && albumName === "" && albumYear === "") res.redirect("/albumSearch?error=true");
             db.search({artist: artistName, release_title: albumName, year: albumYear, type: "master"}).then(function (searchResult) {
-                var albumID1 = 99999999999999;
-                var albumID2 = 99999999999999;
+                let albumID1 = 99999999999999;
+                let albumID2 = 99999999999999;
                 if (searchResult.results.length > 0) {
                     //prefer US album art
-                    var i = searchResult.results.findIndex(album => album.country === "US");
+                    let i = searchResult.results.findIndex(album => album.country === "US");
                     while (i >= 0 && i < searchResult.results.length) {
                         const albumID1temp = searchResult.results[i].master_id;
                         if (albumID1temp < albumID1 && searchResult.results[i].country === "US") {
@@ -1238,7 +1241,7 @@ app.post("/albumSearch", function (req, res) {
                     }
     
                     //prefer UK album art if US not found
-                    var j = searchResult.results.findIndex(album => album.country === "UK");
+                    let j = searchResult.results.findIndex(album => album.country === "UK");
                     while (j >= 0 && j < searchResult.results.length) {
                         const albumID2temp = searchResult.results[j].master_id;
                         if (albumID2temp < albumID2 && searchResult.results[j].country === "UK") {
@@ -1269,7 +1272,7 @@ app.post("/albumSearch", function (req, res) {
 
 app.post("/album/:albumId", function (req, res) {
     if (req.isAuthenticated()) {
-        var album = req.params.albumId;
+        const album = req.params.albumId;
         const regex = /^[0-9]+$/;
         const num = regex.test(album);
         if (num === false) res.redirect("/albumSearch?notFound=true");
@@ -1281,14 +1284,14 @@ app.post("/album/:albumId", function (req, res) {
                 }
                 else if (result > 0) res.redirect("/album/" + album + "?duplicate=true");
                 else {
-                    var artistName = "";
-                    var albumName = "";
-                    var year = "";
-                    var albumArt = "";
-                    var genreAlbum = new Array();
-                    var trackNumbers = new Array();
-                    var tracklist = new Array();
-                    var trackLength = new Array();
+                    let artistName = "";
+                    let albumName = "";
+                    let year = "";
+                    let albumArt = "";
+                    const genreAlbum = new Array();
+                    const trackNumbers = new Array();
+                    const tracklist = new Array();
+                    const trackLength = new Array();
                     
                     db.getMaster(album, function(err, data) {
                         if (err) {
@@ -1319,7 +1322,7 @@ app.post("/album/:albumId", function (req, res) {
                             }
                             
                             if (data.tracklist) {
-                                var trackNumber = 0;
+                                let trackNumber = 0;
                                 for (let i = 0; i < data.tracklist.length; i++) {
                                     if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
                                         trackNumber++;
@@ -1336,7 +1339,7 @@ app.post("/album/:albumId", function (req, res) {
                                 }
                             }
                             
-                            var addAlbum = req.body.add;
+                            const addAlbum = req.body.add;
                             if (addAlbum === "added") {
                                 Album.countDocuments({"userID": req.user._id}, function (err, count) {
                                     if (err) {
@@ -1398,19 +1401,16 @@ app.listen(process.env.PORT || 3000, function (err) {
         process.exit(1);
     }
     console.log("Server started!");
-    setInterval(function() {
-        User.find({awaitingReset: true}, function (err, user) {
-            if (err) console.log(err);
-            else {
-                for (let i = 0; i < user.length; i++) {
-                    var expired = new Date(user[i].tokenExpire).getTime() <= Date.now();
-                    if (expired) {
-                        User.updateOne({"_id": user[i]._id}, {$unset: {token: 1, tokenExpire: 1, awaitingReset: 1}}, function (err, result) {
-                            if (err) console.log(err);
-                        });
-                    }
-                }
-            }
-        });
+    setInterval(async function() {
+        try {
+            await User.updateMany(
+                {"awaitingReset": true, "tokenExpire": mongoose.trusted({$lte: new Date()})},
+                {$unset: {token: 1, tokenExpire: 1, awaitingReset: 1}}
+            );
+        }
+        catch (err) {
+            console.log(err);
+        }
+        
     }, 600000);
 });
