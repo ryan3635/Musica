@@ -11,9 +11,7 @@ const userSchema = new mongoose.Schema({
 });
 
 const passportLocalMongoose = require("passport-local-mongoose");
-const findOrCreate = require("mongoose-findorcreate");
 userSchema.plugin(passportLocalMongoose);
-userSchema.plugin(findOrCreate);
 
 userSchema.index({username: 1}, {unique: true, sparse: true});
 userSchema.index({displayname: 1}, {unique: true, sparse: true});

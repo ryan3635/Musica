@@ -117,10 +117,17 @@ passport.use(new GoogleStrategy({
     callbackURL: process.env.URL + "/auth/google/userHome",
     userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
     },
-    function (accessToken, refreshToken, profile, done) {
-        User.findOrCreate({googleId: profile.id}, function (err, user) {
-            return done(err, user);
-        });
+    async function (accessToken, refreshToken, profile, done) {
+        try {
+            const user = await User.findOneAndUpdate(
+                {googleId: profile.id},
+                {$setOnInsert: {googleId: profile.id}},
+                {upsert: true, returnDocument: "after"}
+            );
+            return done(null, user);
+        } catch (err) {
+            return done(err);
+        }
     }
 ));
 
