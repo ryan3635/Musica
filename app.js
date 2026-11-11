@@ -534,7 +534,7 @@ app.get("/albumSearch", function (req, res) {
 });
 
 
-app.get("/album/:albumId", function (req, res) {
+app.get("/album/:albumId", async function (req, res) {
     const album = req.params.albumId;
     let artistName = "";
     let albumName = "";
@@ -550,114 +550,113 @@ app.get("/album/:albumId", function (req, res) {
     const num = regex.test(album);
     if (num === false) res.redirect("/albumSearch?notFound=true");
     else {
-        db.getMaster(album, function(err, data) {
-            if (err) {
-                console.log(err);
-                res.redirect("/albumSearch?notFound=true");
-            }
-            else {
-                if (data.artists) {
-                    artistName = data.artists[0].name;
-                    albumName = data.title;
-                    
-                    if (censoredAlbums.includes(parseInt(album))) albumArt = "/censored.png";
-                    else if (album == "24535" && data.images?.[5]?.uri) albumArt = data.images[5].uri; //alternate album cover
-                    else if (data.images?.[0]?.uri) albumArt = data.images[0].uri;
-                    
-                    if (data.year) year = data.year;
-                    else year = "";
-                    
-                    if (data.videos) {
-                        for (let i = 0; i < data.videos.length; i++) {
-                            const artist = artistName + " - ";
-                            const artistEnd = " - " + artistName;
-                            const title = data.videos[i].title;
-                            let vidTitle = "";
-                            
-                            if (title.startsWith(artist) || title.startsWith(artistName + " – ") || title.startsWith(artist.toLowerCase()) || title.startsWith(artistName.toLowerCase() + " – ")) {
-                                vidTitle = title.slice(artist.length, title.length);
-                                videoTitle.push(vidTitle);
-                                videoLink.push(data.videos[i].uri);
-                            }
-                            else if (title.endsWith(artistEnd) || title.endsWith(" – " + artistName) || title.endsWith(artistEnd.toLowerCase()) || title.endsWith(" – " + artistName.toLowerCase())) {
-                                vidTitle = title.slice(0, title.length - artistEnd.length);
-                                videoTitle.push(vidTitle);
-                                videoLink.push(data.videos[i].uri);
-                            }
-                            else {
-                                videoTitle.push(data.videos[i].title);
-                                videoLink.push(data.videos[i].uri);
-                            }
-                        }
+        const albumResult = await db.getMaster(album).catch(function (err) {
+            console.log(err);
+            return null;
+        });
+        if (!albumResult) res.redirect("/albumSearch?notFound=true");
+        else {
+            if (albumResult.artists) {
+                artistName = albumResult.artists[0].name;
+                albumName = albumResult.title;
+                
+                if (censoredAlbums.includes(parseInt(album))) albumArt = "/censored.png";
+                else if (album == "24535" && albumResult.images?.[5]?.uri) albumArt = albumResult.images[5].uri; //alternate album cover
+                else if (albumResult.images?.[0]?.uri) albumArt = albumResult.images[0].uri;
+                
+                if (albumResult.year) year = albumResult.year;
+                else year = "";
+                
+                if (albumResult.videos) {
+                    for (let i = 0; i < albumResult.videos.length; i++) {
+                        const artist = artistName + " - ";
+                        const artistEnd = " - " + artistName;
+                        const title = albumResult.videos[i].title;
+                        let vidTitle = "";
                         
-                        const videoTitleLower = new Array();
-                        const videoMapTemp = new Map();
-                        
-                        for (let k = 0; k < videoTitle.length; k++) {
-                            videoTitleLower.push(videoTitle[k].toLowerCase());
-                            videoMapTemp.set(videoTitleLower[k], videoLink[k]);
+                        if (title.startsWith(artist) || title.startsWith(artistName + " – ") || title.startsWith(artist.toLowerCase()) || title.startsWith(artistName.toLowerCase() + " – ")) {
+                            vidTitle = title.slice(artist.length, title.length);
+                            videoTitle.push(vidTitle);
+                            videoLink.push(albumResult.videos[i].uri);
                         }
-                        videoMap = new Map ([...videoMapTemp].sort((a, b) => String(a[0]).localeCompare(b[0])));
-                    }
-                    
-                    if (data.genres) {
-                        for (let i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
-                        if (data.genres.includes("Death Metal") || data.genres.includes("Goregrind") || data.genres.includes("Pornogrind"))
-                            albumArt = "/censored.png";
-                    }
-                    
-                    if (data.styles) {
-                        for (let i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
-                        if (data.styles.includes("Death Metal") || data.styles.includes("Goregrind") || data.styles.includes("Pornogrind"))
-                            albumArt = "/censored.png";
-                    }
-                    
-                    if (data.tracklist) {
-                        let trackNumber = 0;
-                        for (let i = 0; i < data.tracklist.length; i++) {
-                            if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
-                                trackNumber++;
-                                if (data.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + data.tracklist[i].title);
-                                else tracklist.push(trackNumber + ". " + data.tracklist[i].title + " (" + data.tracklist[i].duration + ")");
-                            }
+                        else if (title.endsWith(artistEnd) || title.endsWith(" – " + artistName) || title.endsWith(artistEnd.toLowerCase()) || title.endsWith(" – " + artistName.toLowerCase())) {
+                            vidTitle = title.slice(0, title.length - artistEnd.length);
+                            videoTitle.push(vidTitle);
+                            videoLink.push(albumResult.videos[i].uri);
+                        }
+                        else {
+                            videoTitle.push(albumResult.videos[i].title);
+                            videoLink.push(albumResult.videos[i].uri);
                         }
                     }
                     
-                    if (req.isAuthenticated()) {
-                        const duplicate = req.query.duplicate;
-                        res.render("album", {
-                            logged: true,
-                            albumID: album,
-                            artist: artistName,
-                            title: albumName,
-                            year: year,
-                            cover: albumArt,
-                            videoMap: videoMap,
-                            genre: genreAlbum,
-                            tracks: tracklist,
-                            duplicate: duplicate,
-                            list: req.user.displayname
-                        });
+                    const videoTitleLower = new Array();
+                    const videoMapTemp = new Map();
+                    
+                    for (let k = 0; k < videoTitle.length; k++) {
+                        videoTitleLower.push(videoTitle[k].toLowerCase());
+                        videoMapTemp.set(videoTitleLower[k], videoLink[k]);
                     }
-                    else {
-                        const duplicate = req.query.duplicate;
-                        res.render("album", {
-                            logged: false,
-                            albumID: album,
-                            artist: artistName,
-                            title: albumName,
-                            year: year,
-                            cover: albumArt,
-                            videoMap: videoMap,
-                            genre: genreAlbum,
-                            tracks: tracklist,
-                            duplicate: duplicate
-                        });
+                    videoMap = new Map ([...videoMapTemp].sort((a, b) => String(a[0]).localeCompare(b[0])));
+                }
+                
+                if (albumResult.genres) {
+                    for (let i = 0; i < albumResult.genres.length; i++) genreAlbum.push(" " + albumResult.genres[i]);
+                    if (albumResult.genres.includes("Death Metal") || albumResult.genres.includes("Goregrind") || albumResult.genres.includes("Pornogrind"))
+                        albumArt = "/censored.png";
+                }
+                
+                if (albumResult.styles) {
+                    for (let i = 0; i < albumResult.styles.length; i++) genreAlbum.push(" " + albumResult.styles[i]);
+                    if (albumResult.styles.includes("Death Metal") || albumResult.styles.includes("Goregrind") || albumResult.styles.includes("Pornogrind"))
+                        albumArt = "/censored.png";
+                }
+                
+                if (albumResult.tracklist) {
+                    let trackNumber = 0;
+                    for (let i = 0; i < albumResult.tracklist.length; i++) {
+                        if (albumResult.tracklist[i].type_ != 'heading' && albumResult.tracklist[i].position != 'Video') {
+                            trackNumber++;
+                            if (albumResult.tracklist[i].duration === '') tracklist.push(trackNumber + ". " + albumResult.tracklist[i].title);
+                            else tracklist.push(trackNumber + ". " + albumResult.tracklist[i].title + " (" + albumResult.tracklist[i].duration + ")");
+                        }
                     }
                 }
-                else res.redirect("/albumSearch?notFound=true");
+                
+                if (req.isAuthenticated()) {
+                    const duplicate = req.query.duplicate;
+                    res.render("album", {
+                        logged: true,
+                        albumID: album,
+                        artist: artistName,
+                        title: albumName,
+                        year: year,
+                        cover: albumArt,
+                        videoMap: videoMap,
+                        genre: genreAlbum,
+                        tracks: tracklist,
+                        duplicate: duplicate,
+                        list: req.user.displayname
+                    });
+                }
+                else {
+                    const duplicate = req.query.duplicate;
+                    res.render("album", {
+                        logged: false,
+                        albumID: album,
+                        artist: artistName,
+                        title: albumName,
+                        year: year,
+                        cover: albumArt,
+                        videoMap: videoMap,
+                        genre: genreAlbum,
+                        tracks: tracklist,
+                        duplicate: duplicate
+                    });
+                }
             }
-        });
+            else res.redirect("/albumSearch?notFound=true");
+        }
     }
 });
 
@@ -1277,19 +1276,16 @@ app.post("/albumSearch", function (req, res) {
 });
 
 
-app.post("/album/:albumId", function (req, res) {
+app.post("/album/:albumId", async function (req, res) {
     if (req.isAuthenticated()) {
         const album = req.params.albumId;
         const regex = /^[0-9]+$/;
         const num = regex.test(album);
         if (num === false) res.redirect("/albumSearch?notFound=true");
         else {
-            Album.countDocuments({"userID": req.user._id, "albumID": album}, function (err, result) {
-                if (err) {
-                    console.log(err);
-                    res.redirect("/albumSearch?error=true");
-                }
-                else if (result > 0) res.redirect("/album/" + album + "?duplicate=true");
+            try {
+                const albumDuplicate = await Album.countDocuments({"userID": req.user._id, "albumID": album});
+                if (albumDuplicate > 0) res.redirect("/album/" + album + "?duplicate=true");
                 else {
                     let artistName = "";
                     let albumName = "";
@@ -1300,93 +1296,83 @@ app.post("/album/:albumId", function (req, res) {
                     const tracklist = new Array();
                     const trackLength = new Array();
                     
-                    db.getMaster(album, function(err, data) {
-                        if (err) {
-                            console.log(err);
-                            res.redirect("/albumSearch?notFound=true");
+                    const albumResult = await db.getMaster(album).catch(function (err) {
+                        console.log(err);
+                        return null;
+                    });
+                    if (!albumResult) {
+                        res.redirect("/albumSearch?notFound=true");
+                    }
+                    else if (albumResult.artists) {
+                        artistName = albumResult.artists[0].name;
+                        albumName = albumResult.title;
+                        
+                        if (censoredAlbums.includes(parseInt(album))) albumArt = "/censored.png";
+                        else if (album == "24535" && albumResult.images?.[5]?.uri) albumArt = albumResult.images[5].uri; //alternate album cover for specific album
+                        else if (albumResult.images?.[0]?.uri) albumArt = albumResult.images[0].uri;
+                        
+                        if (albumResult.year) year = albumResult.year;
+                        else year = "";
+                        
+                        if (albumResult.genres) {
+                            for (let i = 0; i < albumResult.genres.length; i++) genreAlbum.push(" " + albumResult.genres[i]);
+                            if (albumResult.genres.includes("Death Metal") || albumResult.genres.includes("Goregrind") || albumResult.genres.includes("Pornogrind"))
+                                albumArt = "/censored.png";
                         }
-                        else if (data.artists) {
-                            artistName = data.artists[0].name;
-                            albumName = data.title;
-                            
-                            if (censoredAlbums.includes(parseInt(album))) albumArt = "/censored.png";
-                            else if (album == "24535" && data.images?.[5]?.uri) albumArt = data.images[5].uri; //alternate album cover for specific album
-                            else if (data.images?.[0]?.uri) albumArt = data.images[0].uri;
-                            
-                            if (data.year) year = data.year;
-                            else year = "";
-                            
-                            if (data.genres) {
-                                for (let i = 0; i < data.genres.length; i++) genreAlbum.push(" " + data.genres[i]);
-                                if (data.genres.includes("Death Metal") || data.genres.includes("Goregrind") || data.genres.includes("Pornogrind"))
-                                    albumArt = "/censored.png";
-                            }
-                            
-                            if (data.styles) {
-                                for (let i = 0; i < data.styles.length; i++) genreAlbum.push(" " + data.styles[i]);
-                                if (data.styles.includes("Death Metal") || data.styles.includes("Goregrind") || data.styles.includes("Pornogrind"))
-                                    albumArt = "/censored.png";
-                            }
-                            
-                            if (data.tracklist) {
-                                let trackNumber = 0;
-                                for (let i = 0; i < data.tracklist.length; i++) {
-                                    if (data.tracklist[i].type_ != 'heading' && data.tracklist[i].position != 'Video') {
-                                        trackNumber++;
-                                        if (data.tracklist[i].duration === '') {
-                                            trackNumbers.push(trackNumber);
-                                            tracklist.push(data.tracklist[i].title);
-                                        }
-                                        else {
-                                            trackNumbers.push(trackNumber);
-                                            tracklist.push(data.tracklist[i].title);
-                                            trackLength.push(data.tracklist[i].duration);
-                                        }
+                        
+                        if (albumResult.styles) {
+                            for (let i = 0; i < albumResult.styles.length; i++) genreAlbum.push(" " + albumResult.styles[i]);
+                            if (albumResult.styles.includes("Death Metal") || albumResult.styles.includes("Goregrind") || albumResult.styles.includes("Pornogrind"))
+                                albumArt = "/censored.png";
+                        }
+                        
+                        if (albumResult.tracklist) {
+                            let trackNumber = 0;
+                            for (let i = 0; i < albumResult.tracklist.length; i++) {
+                                if (albumResult.tracklist[i].type_ != 'heading' && albumResult.tracklist[i].position != 'Video') {
+                                    trackNumber++;
+                                    if (albumResult.tracklist[i].duration === '') {
+                                        trackNumbers.push(trackNumber);
+                                        tracklist.push(albumResult.tracklist[i].title);
+                                    }
+                                    else {
+                                        trackNumbers.push(trackNumber);
+                                        tracklist.push(albumResult.tracklist[i].title);
+                                        trackLength.push(albumResult.tracklist[i].duration);
                                     }
                                 }
                             }
-                            
-                            const addAlbum = req.body.add;
-                            if (addAlbum === "added") {
-                                Album.countDocuments({"userID": req.user._id}, function (err, count) {
-                                    if (err) {
-                                        console.log(err);
-                                        res.redirect("/albumSearch?error=true");
-                                    }
-                                    else {
-                                        const albumAdd = new Album({
-                                            albumID: album,
-                                            userID: req.user._id,
-                                            title: albumName,
-                                            artist: artistName,
-                                            year: year,
-                                            img: albumArt,
-                                            trackNumber: trackNumbers,
-                                            albumTracks: tracklist,
-                                            trackLength: trackLength,
-                                            position: count + 1
-                                        });
-                                        albumAdd.save(function (err) {
-                                            if (err) {
-                                                if (err.code === 11000) res.redirect("/album/" + album + "?duplicate=true");
-                                                else {
-                                                    console.log(err);
-                                                    res.redirect("/albumSearch?error=true");
-                                                }
-                                            }
-                                            else {
-                                                const page = Math.trunc(count/10);
-                                                res.redirect("/userProfile/" + req.user.displayname + "?page=" + (page + 1) + "&added=true");
-                                            }
-                                        });
-                                    }
-                                });
-                            }
                         }
-                        else res.redirect("/albumSearch?notFound=true");
-                    });
+                        
+                        const addAlbum = req.body.add;
+                        if (addAlbum === "added") {
+                            const albumCount = await Album.countDocuments({"userID": req.user._id});
+                            const page = Math.trunc(albumCount/10);
+                            const albumAdd = new Album({
+                                albumID: album,
+                                userID: req.user._id,
+                                title: albumName,
+                                artist: artistName,
+                                year: year,
+                                img: albumArt,
+                                trackNumber: trackNumbers,
+                                albumTracks: tracklist,
+                                trackLength: trackLength,
+                                position: albumCount + 1
+                            });
+                            await albumAdd.save();
+                            res.redirect("/userProfile/" + req.user.displayname + "?page=" + (page + 1) + "&added=true");
+                        } else res.redirect("/album/" + album);
+                    }
+                    else res.redirect("/albumSearch?notFound=true");
                 }
-            });
+            } catch (err) {
+                if (err.code === 11000) res.redirect("/album/" + album + "?duplicate=true");
+                else {
+                    console.log(err);
+                    res.redirect("/albumSearch?error=true");
+                }
+            }
         }
     }
     else res.redirect("/login");
