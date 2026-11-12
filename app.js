@@ -1203,14 +1203,13 @@ app.post("/userProfile/:displayName", function (req, res) {
 });
 
 
-app.post("/albumSearch", function (req, res) {
+app.post("/albumSearch", async function (req, res) {
     const artistName = req.body.userArtist;
     const albumName = req.body.userAlbum;
     const albumYear = req.body.year;
     let discogsId = req.body.discogsId;
 
     if (artistName === "" && albumName === "" && albumYear === "") res.redirect("/albumSearch?error=true");
-
     else {
         if (discogsId !== undefined) {
             const regex = /^[0-9]+$/;
@@ -1219,20 +1218,20 @@ app.post("/albumSearch", function (req, res) {
             else {
                 if (discogsId.length > 13) discogsId = discogsId.slice(0, 13);
                 discogsId = parseInt(discogsId);
-                db.search({master_id: discogsId}).then(function (searchResult) {
+                try {
+                    const searchResult = await db.search({master_id: discogsId});
                     if (searchResult.results.length > 0) res.redirect("/album/" + searchResult.results[0].master_id);
                     else res.redirect("/albumSearch?discogsSearch=true&notFound=true");
-                })
-                .catch(function (err) {
+                } catch (err) {
                     console.log(err);
                     res.redirect("/albumSearch?discogsSearch=true&error=true");
-                });
+                }
             }
         }
     
         else {
-            if (artistName === "" && albumName === "" && albumYear === "") res.redirect("/albumSearch?error=true");
-            db.search({artist: artistName, release_title: albumName, year: albumYear, type: "master"}).then(function (searchResult) {
+            try {
+                const searchResult = await db.search({artist: artistName, release_title: albumName, year: albumYear, type: "master"});
                 let albumID1 = 99999999999999;
                 let albumID2 = 99999999999999;
                 if (searchResult.results.length > 0) {
@@ -1245,7 +1244,7 @@ app.post("/albumSearch", function (req, res) {
                         }
                         i++;
                     }
-    
+
                     //prefer UK album art if US not found
                     let j = searchResult.results.findIndex(album => album.country === "UK");
                     while (j >= 0 && j < searchResult.results.length) {
@@ -1255,7 +1254,7 @@ app.post("/albumSearch", function (req, res) {
                         } 
                         j++;
                     }
-    
+
                     if (albumID1 < albumID2) res.redirect("/album/" + albumID1);
                     else if (albumID1 > albumID2) res.redirect("/album/" + albumID2);
                     else {
@@ -1266,11 +1265,10 @@ app.post("/albumSearch", function (req, res) {
                 else {
                     res.redirect("/albumSearch?notFound=true");
                 }
-            })
-            .catch(function (err) {
+            } catch (err) {
                 console.log(err);
                 res.redirect("/albumSearch?error=true");
-            });
+            }
         }
     }
 });
