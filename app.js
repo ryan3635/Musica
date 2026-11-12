@@ -148,7 +148,6 @@ app.get("/", function (req, res) {
         else {
             const loggedIn = req.query.loggedIn;
             const googleDisplayname = req.query.googleDisplayname;
-
             const logged = {
                 loggedIn: loggedIn,
                 googleDisplayname: googleDisplayname,
@@ -167,7 +166,6 @@ app.get("/login", function (req, res) {
         const limitError = req.query.limitError;
         const accCreated = req.query.accCreated;
         const pwReset = req.query.pwReset;
-
         const errCheck = {
             page: "Login",
             error: error,
@@ -190,7 +188,6 @@ app.get("/register", function (req, res) {
         const duplicateDisplayname = req.query.duplicateDisplayname;
         const displaynameError = req.query.displaynameError;
         const displaynameSwear = req.query.displaynameSwear;
-
         const errCheck = {
             page: "Register",
             error: error,
@@ -271,7 +268,6 @@ app.get("/forget", function (req, res) {
         const noEmail = req.query.noEmail;
         const limitError = req.query.limitError;
         const tokenExpired = req.query.tokenExpired;
-
         const message = {
             page: "Forget",
             entered: entered,
@@ -286,34 +282,31 @@ app.get("/forget", function (req, res) {
 });
 
 
-app.get("/passwordReset", function (req, res) {
+app.get("/passwordReset", async function (req, res) {
     if (!req.isAuthenticated()) {
         if (typeof req.query.userID === "string" && typeof req.query.token === "string" && req.query.userID && req.query.token) {
             const userID = req.query.userID;
             const token = req.query.token;
             const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-            User.findOne({"_id": userID, token: hashedToken, awaitingReset: true, tokenExpire: mongoose.trusted({$gt: Date.now()})}, function (err, result) {
-                if (err) {
-                    console.log(err);
-                    res.redirect("/passwordReset?error=true");
-                }
+            try {
+                const user = await User.findOne({"_id": userID, token: hashedToken, awaitingReset: true, tokenExpire: mongoose.trusted({$gt: Date.now()})});
+                if (!user) res.redirect("/forget?tokenExpired=true");
                 else {
-                    if (!result) res.redirect("/forget?tokenExpired=true");
-                    else {
-                        const error = req.query.error;
-                        const duplicatePwError = req.query.duplicatePwError;
-
-                        const reset = {
-                            error: error,
-                            duplicatePwError: duplicatePwError,
-                            userID: userID,
-                            token: token
-                        }
-                        res.render("passwordReset", reset);
+                    const error = req.query.error;
+                    const duplicatePwError = req.query.duplicatePwError;
+                    const reset = {
+                        error: error,
+                        duplicatePwError: duplicatePwError,
+                        userID: userID,
+                        token: token
                     }
+                    res.render("passwordReset", reset);
                 }
-            });
+            } catch (err) {
+                console.log(err);
+                res.redirect("/passwordReset?error=true");
+            }
         }
         else res.redirect("/forget?tokenExpired=true");
     }
@@ -412,7 +405,6 @@ app.get("/userHome", function (req, res) {
         else {
             const loggedIn = req.query.loggedIn;
             const googleDisplayname = req.query.googleDisplayname;
-
             const logged = {
                 loggedIn: loggedIn,
                 googleDisplayname: googleDisplayname,
@@ -477,7 +469,6 @@ app.get("/userProfile/:displayName", function (req, res) {
                                     const goto = req.query.goto;
                                     const gotoError = req.query.gotoError;
                                     const error = req.query.error;
-
                                     const logged = !!req.user && userId.displayname === req.user.displayname;
                                     res.render("userProfile", {
                                         albumList: results,
