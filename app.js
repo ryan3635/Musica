@@ -423,16 +423,13 @@ app.get("/userProfile", function (req, res) {
 });
 
 
-app.get("/userProfile/:displayName", function (req, res) {
+app.get("/userProfile/:displayName", async function (req, res) {
     const displayName = req.params.displayName;
     const yourList = req.user ? req.user.displayname : undefined;
 
-    User.findOne({displayname: displayName}, function (err, userId) {
-        if (err) {
-            console.log(err);
-            res.redirect("/");
-        }
-        else if (!userId) res.redirect("/");
+    try {
+        const userId = await User.findOne({displayname: displayName});
+        if (!userId) res.redirect("/");
         else {
             const userID = userId._id;
             const page = req.query.page;
@@ -442,61 +439,50 @@ app.get("/userProfile/:displayName", function (req, res) {
             if (page === undefined || validPage === false) res.redirect("/userProfile/" + displayName + "?page=1");
             else {
                 const albums = ((page - 1) * 10) + 1;
-                Album.find({"position": mongoose.trusted({$gte: albums}), "userID": userID}, null, {sort: {position: 1}}, function (err, results) {
-                    if (err) {
-                        console.log(err);
-                        res.redirect("/userProfile?error=true");
-                    }
-                    else {
-                        Album.countDocuments({"userID": userID}, function (err, count) {
-                            if (err) {
-                                console.log(err);
-                                res.redirect("/userProfile?error=true");
-                            }
-                            else {
-                                const listSize = count;
-                                const pageLimit = (Math.trunc(count/10) + 1);
-                                if ((count % 10) === 0 && count >= 10 && page == pageLimit) res.redirect("/userProfile/" + displayName + "?page=" + (pageLimit - 1));
-                                else if (page > pageLimit) res.redirect("/userProfile/" + displayName + "?page=" + pageLimit);
-                                else if (page <= 0) res.redirect("/userProfile/" + displayName + "?page=1");
-                                else {
-                                    const added = req.query.added;
-                                    const removed = req.query.removed;
-                                    const reordered = req.query.reordered;
-                                    const reorder = req.query.reorder;
-                                    const reorderError = req.query.reorderError;
-                                    const samePos = req.query.samePos;
-                                    const goto = req.query.goto;
-                                    const gotoError = req.query.gotoError;
-                                    const error = req.query.error;
-                                    const logged = !!req.user && userId.displayname === req.user.displayname;
-                                    res.render("userProfile", {
-                                        albumList: results,
-                                        added: added,
-                                        removed: removed,
-                                        reordered: reordered,
-                                        reorder: reorder,
-                                        reorderError: reorderError,
-                                        samePos: samePos,
-                                        page: page,
-                                        goto: goto,
-                                        gotoError: gotoError,
-                                        error: error,
-                                        listSize: listSize,
-                                        pages: pageLimit,
-                                        list: displayName,
-                                        yourList: yourList,
-                                        logged: logged,
-                                        loggedToolbar: !!req.user
-                                    });
-                                }
-                            }
-                        });
-                    }
-                }).limit(10);
+                const albumList = await Album.find({"position": mongoose.trusted({$gte: albums}), "userID": userID}, null, {sort: {position: 1}}).limit(10);
+                const listSize = await Album.countDocuments({"userID": userID});
+                const pageLimit = (Math.trunc(listSize/10) + 1);
+
+                if ((listSize % 10) === 0 && listSize >= 10 && page == pageLimit) res.redirect("/userProfile/" + displayName + "?page=" + (pageLimit - 1));
+                else if (page > pageLimit) res.redirect("/userProfile/" + displayName + "?page=" + pageLimit);
+                else if (page <= 0) res.redirect("/userProfile/" + displayName + "?page=1");
+                else {
+                    const added = req.query.added;
+                    const removed = req.query.removed;
+                    const reordered = req.query.reordered;
+                    const reorder = req.query.reorder;
+                    const reorderError = req.query.reorderError;
+                    const samePos = req.query.samePos;
+                    const goto = req.query.goto;
+                    const gotoError = req.query.gotoError;
+                    const error = req.query.error;
+                    const logged = !!req.user && userId.displayname === req.user.displayname;
+                    res.render("userProfile", {
+                        albumList: albumList,
+                        added: added,
+                        removed: removed,
+                        reordered: reordered,
+                        reorder: reorder,
+                        reorderError: reorderError,
+                        samePos: samePos,
+                        page: page,
+                        goto: goto,
+                        gotoError: gotoError,
+                        error: error,
+                        listSize: listSize,
+                        pages: pageLimit,
+                        list: displayName,
+                        yourList: yourList,
+                        logged: logged,
+                        loggedToolbar: !!req.user
+                    });
+                }
             }
         }
-    });
+    } catch (err) {
+        console.log(err);
+        res.redirect("/userProfile?error=true");
+    }
 });
 
 
