@@ -642,7 +642,7 @@ app.get("/album/:albumId", async function (req, res) {
 app.post("/login", userAuthLimit, passport.authenticate("local", {successRedirect: "/userHome?loggedIn=true", failureRedirect: "/login?error=true"}));
 
 
-app.post("/register", userAuthLimit, function (req, res) {
+app.post("/register", userAuthLimit, async function (req, res) {
     const username = req.body.username;
     let displayname = req.body.displayname;
     const passwordNew1 = req.body.passwordNew1;
@@ -653,65 +653,35 @@ app.post("/register", userAuthLimit, function (req, res) {
     else if (!validator.isEmail(username)) res.redirect("/register?error=true");
     else if (req.isAuthenticated()) res.redirect("/loggedIn");
     else {
-        if (passwordNew1 !== passwordNew2) {
-            res.redirect("/register?duplicatePwError=true");
-        }
+        if (passwordNew1 !== passwordNew2) res.redirect("/register?duplicatePwError=true");
         else {
             const regex = /^[a-zA-Z0-9]+$/;
             const validName = regex.test(displayname);
-            User.countDocuments({"username": username}, function (err, count) {
-                if (err) {
+            displayname = filter.censor(displayname);
+            try {
+                if (await User.exists({username: username})) res.redirect("/register?duplicateEmail=true");
+                else if (await User.exists({displayname: displayname})) res.redirect("/register?duplicateDisplayname=true");
+                else if (displayname.includes("*") || displayname.length > 20) res.redirect("/register?displaynameSwear=true");
+                else if (validName === false || displayname.length > 20) res.redirect("/register?displaynameError=true");
+                else {
+                    const salt = await bcrypt.genSalt(10);
+                    const hash = await bcrypt.hash(passwordNew2, salt);
+                    const newUser = new User({
+                        username: username,
+                        password: hash,
+                        displayname: displayname,
+                    });
+                    await newUser.save();
+                    res.redirect("/login?accCreated=true");
+                }
+            } catch (err) {
+                if (err.code === 11000 && err.keyPattern.displayname) res.redirect("/register?duplicateDisplayname=true");
+                else if (err.code === 11000) res.redirect("/register?duplicateEmail=true");
+                else {
                     console.log(err);
                     res.redirect("/register?error=true");
                 }
-                else if (count >= 1) res.redirect("/register?duplicateEmail=true");
-                else {
-                    displayname = filter.censor(displayname);
-                    User.countDocuments({"displayname": displayname}, function (err, count) {
-                        if (err) {
-                            console.log(err);
-                            res.redirect("/register?error=true");
-                        }
-                        else if (count >= 1) res.redirect("/register?duplicateDisplayname=true");
-                        else if (displayname.includes("*") || displayname.length > 20) res.redirect("/register?displaynameSwear=true");
-                        else if (validName === false || displayname.length > 20) res.redirect("/register?displaynameError=true");
-                        else {
-                            bcrypt.genSalt(10, function (err, salt) {
-                                if (err) {
-                                    console.log(err);
-                                    res.redirect("/register?error=true");
-                                }
-                                else {
-                                    bcrypt.hash(passwordNew2, salt, function (err, hash) {
-                                        if (err) {
-                                            console.log(err);
-                                            res.redirect("/register?duplicatePwError=true");
-                                        }
-                                        else {
-                                            const newUser = new User({
-                                                username: username,
-                                                password: hash,
-                                                displayname: displayname,
-                                            });
-                                            newUser.save(function (err) {
-                                                if (err) {
-                                                    if (err.code === 11000 && err.keyPattern.displayname) res.redirect("/register?duplicateDisplayname=true");
-                                                    else if (err.code === 11000) res.redirect("/register?duplicateEmail=true");
-                                                    else {
-                                                        console.log(err);
-                                                        res.redirect("/register?error=true");
-                                                    }
-                                                }
-                                                else res.redirect("/login?accCreated=true");
-                                            });
-                                        }
-                                    });
-                                }
-                            });
-                        }
-                    });
-                }
-            });
+            }
         }
     }
 });
