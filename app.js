@@ -425,7 +425,7 @@ app.get("/userProfile", function (req, res) {
 
 app.get("/userProfile/:displayName", async function (req, res) {
     const displayName = req.params.displayName;
-    const yourList = req.user ? req.user.displayname : undefined;
+    const yourList = req.user?.displayname;
 
     try {
         const userId = await User.findOne({displayname: displayName});
@@ -717,63 +717,32 @@ app.post("/register", userAuthLimit, function (req, res) {
 });
 
 
-app.post("/forget", forgetPwLimit, function (req, res) {
+app.post("/forget", forgetPwLimit, async function (req, res) {
     const username = req.body.username;
-
     if (typeof username !== "string" || !username) res.redirect("/forget?error=true");
     else {
-        User.countDocuments({username: username}, function (err, count) {
-            if (err) {
-                console.log(err);
-                res.redirect("/forget?error=true");
-            }
-            else if (count < 1) res.redirect("/forget?noEmail=true");
+        try {
+            const id = await User.findOne({username: username}, {_id: 1});
+            if (!id) res.redirect("/forget?noEmail=true");
             else {
-                User.findOne({username: username}, {_id: 1}, function (err, id) {
-                    if (err) {
-                        console.log(err);
-                        res.redirect("/forget?error=true");
-                    }
-                    else {
-                        let token = "";
-                        crypto.randomBytes(20, function (err, bytes) {
-                            if (err) {
-                                console.log(err);
-                                res.redirect("/forget?error=true");
-                            }
-                            else {
-                                const expireTime = Date.now() + 600000;
-                                token = bytes.toString('hex');
-                                const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-
-                                User.updateOne({"_id": id}, {"token": hashedToken, "tokenExpire": expireTime, "awaitingReset": true}, function (err, result) {
-                                    if (err) {
-                                        console.log(err);
-                                        res.redirect("/forget?error=true");
-                                    }
-                                    else {
-                                        const email = {
-                                        from: process.env.NODEMAILER_USER,
-                                        to: username,
-                                        subject: "Musica Password Recovery",
-                                        //update this html field when posted online
-                                        html: "<h2>Password Reset</h2><p>Click the link below to reset your Musica account password. If you did not request this, please ingore this email.</p><br><a href='" + process.env.URL + "/passwordReset?userID=" + id._id + "&token=" + token + "'>Musica Password Reset</a>"
-                                        }
-                                        emailer.sendMail(email, function (err, info) {
-                                            if (err) {
-                                                console.log(err);
-                                                res.redirect("/forget?error=true");
-                                            }
-                                        });
-                                        res.redirect("/forget?entered=true");
-                                    }
-                                });
-                            }
-                        });
-                    }
-                });
+                const token = crypto.randomBytes(20).toString("hex");
+                const expireTime = Date.now() + 600000;
+                const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+                await User.updateOne({"_id": id}, {"token": hashedToken, "tokenExpire": expireTime, "awaitingReset": true});
+                const email = {
+                    from: process.env.NODEMAILER_USER,
+                    to: username,
+                    subject: "Musica Password Recovery",
+                    //update this html field when posted online
+                    html: "<h2>Password Reset</h2><p>Click the link below to reset your Musica account password. If you did not request this, please ingore this email.</p><br><a href='" + process.env.URL + "/passwordReset?userID=" + id._id + "&token=" + token + "'>Musica Password Reset</a>"
+                }
+                await emailer.sendMail(email);
+                res.redirect("/forget?entered=true");
             }
-        });
+        } catch (err) {
+            console.log(err);
+            res.redirect("/forget?error=true");
+        }
     }
 });
 
