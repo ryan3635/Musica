@@ -752,7 +752,7 @@ app.post("/passwordReset", async function (req, res) {
 });
 
 
-app.post("/change/:type", function (req, res) {
+app.post("/change/:type", async function (req, res) {
     if (req.isAuthenticated()) {
         let displayname = req.body.displayname;
         const email = req.body.email;
@@ -764,71 +764,42 @@ app.post("/change/:type", function (req, res) {
         if (type === "displayname") {
             const regex = /^[a-zA-Z0-9]+$/;
             const validName = regex.test(displayname);
-            if (req.user.googleId === undefined) {
-                if (typeof displayname !== "string" || !displayname || typeof password !== "string" || !password) res.redirect("/change/displayname?error=true");
-                else {
-                    displayname = filter.censor(displayname);
-                    User.countDocuments({"displayname": displayname}, function (err, count) {
-                        if (err) {
-                            console.log(err);
-                            res.redirect("/change/displayname?error=true");
-                        }
-                        else if (count >= 1) res.redirect("/change/displayname?duplicateDisplayname=true");
+            try {
+                if (req.user.googleId === undefined) {
+                    if (typeof displayname !== "string" || !displayname || typeof password !== "string" || !password) res.redirect("/change/displayname?error=true");
+                    else {
+                        displayname = filter.censor(displayname);
+                        if (await User.exists({"displayname": displayname})) res.redirect("/change/displayname?duplicateDisplayname=true");
+                        else if (displayname === "") res.redirect("/change/displayname?error=true");
                         else if (displayname.includes("*") || displayname.length > 20) res.redirect("/change/displayname?displaynameSwear=true");
-                        else if (validName === false || displayname.length > 20) res.redirect("/change/displayname?displaynameError=true");
+                        else if (!validName || displayname.length > 20) res.redirect("/change/displayname?displaynameError=true");
                         else {
-                            User.findOne({"_id": req.user._id}, function (err, user) {
-                                if (err) {
-                                    console.log(err);
-                                    res.redirect("/change/displayname?error=true");
-                                }
-                                else {
-                                    bcrypt.compare(password, user.password, function (err, result) {
-                                        if (err) {
-                                            console.log(err);
-                                            res.redirect("/change/displayname?pwError=true");
-                                        }
-                                        else if (result === false) res.redirect("/change/displayname?pwError=true");
-                                        else {
-                                            if (displayname === "") res.redirect("/change/displayname?error=true");
-                                            User.updateOne({"_id": req.user._id}, {$set: {displayname: displayname}}, function (err, result) {
-                                                if (err) {
-                                                    console.log(err);
-                                                    res.redirect("/change/displayname?error=true");
-                                                }
-                                                else res.redirect("/account?displaynameUpdate=true");
-                                            });
-                                        }
-                                    });
-                                }
-                            });
+                            const user = await User.findOne({"_id": req.user._id});
+                            const auth = await bcrypt.compare(password, user.password);
+                            if (!auth) res.redirect("/change/displayname?pwError=true");
+                            else {
+                                await User.updateOne({"_id": req.user._id}, {$set: {displayname: displayname}});
+                                res.redirect("/account?displaynameUpdate=true");
+                            }
                         }
-                    });
+                    }
                 }
-            }
-            else {
-                if (typeof displayname != "string" || !displayname) res.redirect("/change/displayname?error=true");
                 else {
-                    displayname = filter.censor(displayname);
-                    User.countDocuments({"displayname": displayname}, function (err, count) {
-                        if (err) {
-                            console.log(err);
-                            res.redirect("/change/displayname?error=true");
-                        }
-                        else if (count >= 1) res.redirect("/change/displayname?duplicateDisplayname=true");
+                    if (typeof displayname != "string" || !displayname) res.redirect("/change/displayname?error=true");
+                    else {
+                        displayname = filter.censor(displayname);
+                        if (await User.exists({"displayname": displayname})) res.redirect("/change/displayname?duplicateDisplayname=true");
                         else if (displayname.includes("*") || displayname.length > 20) res.redirect("/change/displayname?displaynameSwear=true");
-                        else if (validName === false || displayname.length > 20) res.redirect("/change/displayname?displaynameError=true");
+                        else if (!validName || displayname.length > 20) res.redirect("/change/displayname?displaynameError=true");
                         else {
-                            User.updateOne({"_id": req.user._id}, {$set: {displayname: displayname}}, function (err, result) {
-                                if (err) {
-                                    console.log(err);
-                                    res.redirect("/change/displayname?error=true");
-                                }
-                                else res.redirect("/userHome?googleDisplayname=true");
-                            });
+                            await User.updateOne({"_id": req.user._id}, {$set: {displayname: displayname}});
+                            res.redirect("/userHome?googleDisplayname=true");
                         }
-                    });
+                    }
                 }
+            } catch (err) {
+                console.log(err);
+                res.redirect("/change/displayname?error=true");
             }
         }
 
@@ -837,39 +808,21 @@ app.post("/change/:type", function (req, res) {
             else if (typeof email !== "string" || !email || typeof password !== "string" || !password) res.redirect("/change/email?error=true");
             else if (!validator.isEmail(email)) res.redirect("/change/email?error=true");
             else {
-                User.countDocuments({"username": email}, function (err, count) {
-                    if (err) {
-                        console.log(err);
-                        res.redirect("/change/email?error=true");
-                    }
-                    else if (count >= 1) res.redirect("/change/email?duplicateEmail=true");
+                try {
+                    if (await User.exists({"username": email})) res.redirect("/change/email?duplicateEmail=true");
                     else {
-                        User.findOne({"_id": req.user._id}, function (err, user) {
-                            if (err) {
-                                console.log(err);
-                                res.redirect("/change/email?error=true");
-                            }
-                            else {
-                                bcrypt.compare(password, user.password, function (err, result) {
-                                    if (err) {
-                                        console.log(err);
-                                        res.redirect("/change/email?pwError=true");
-                                    }
-                                    else if (result === false) res.redirect("/change/email?pwError=true");
-                                    else {
-                                        User.updateOne({"_id": req.user._id}, {$set: {username: email}}, function (err, result) {
-                                            if (err) {
-                                                console.log(err);
-                                                res.redirect("/change/email?error=true");
-                                            }
-                                            else res.redirect("/account?emailUpdate=true");
-                                        });
-                                    }
-                                });
-                            }
-                        });
+                        const user = await User.findOne({"_id": req.user._id});
+                        const auth = await bcrypt.compare(password, user.password);
+                        if (!auth) res.redirect("/change/email?pwError=true");
+                        else {
+                            await User.updateOne({"_id": req.user._id}, {$set: {username: email}});
+                            res.redirect("/account?emailUpdate=true");
+                        }
                     }
-                });
+                } catch (err) {
+                    console.log(err);
+                    res.redirect("/change/email?error=true");
+                }
             }
         }
 
@@ -877,47 +830,21 @@ app.post("/change/:type", function (req, res) {
             if (req.user.googleId !== undefined) res.redirect("/account");
             else if (typeof password !== "string" || !password || typeof passwordNew1 !== "string" || !passwordNew1 || typeof passwordNew2 !== "string" || !passwordNew2) res.redirect("/change/password?error=true");
             else {
-                User.findOne({"_id": req.user._id}, function (err, user) {
-                    if (err) {
-                        console.log(err);
-                        res.redirect("/change/password?error=true");
-                    }
+                try {
+                    const user = await User.findOne({"_id": req.user._id});
+                    const result = await bcrypt.compare(password, user.password);
+                    if (!result) res.redirect("/change/password?pwError=true");
+                    else if (passwordNew1 !== passwordNew2) res.redirect("/change/password?duplicatePwError=true");
                     else {
-                        bcrypt.compare(password, user.password, function (err, result) {
-                            if (err) {
-                                console.log(err);
-                                res.redirect("/change/password?pwError=true");
-                            }
-                            else if (result === false) res.redirect("/change/password?pwError=true");
-                            else if (passwordNew1 !== passwordNew2) res.redirect("/change/password?duplicatePwError=true");
-                            else {
-                                bcrypt.genSalt(10, function (err, salt) {
-                                    if (err) {
-                                        console.log(err);
-                                        res.redirect("/change/password?error=true");
-                                    }
-                                    else {
-                                        bcrypt.hash(passwordNew2, salt, function (err, hash) {
-                                            if (err) {
-                                                console.log(err);
-                                                res.redirect("/change/password?duplicatePwError=true");
-                                            }
-                                            else {
-                                                User.updateOne({"_id": req.user._id}, {$set: {password: hash}}, function (err, result) {
-                                                    if (err) {
-                                                        console.log(err);
-                                                        res.redirect("/change/password?error=true");
-                                                    }
-                                                    else res.redirect("/account?passwordUpdate=true");
-                                                });
-                                            }
-                                        });
-                                    }
-                                });
-                            }
-                        });
+                        const salt = await bcrypt.genSalt(10);
+                        const hash = await bcrypt.hash(passwordNew2, salt);
+                        await User.updateOne({"_id": req.user._id}, {$set: {password: hash}});
+                        res.redirect("/account?passwordUpdate=true");
                     }
-                });
+                } catch (err) {
+                    console.log(err);
+                    res.redirect("/change/password?error=true");
+                }
             }
         }
     }
@@ -1178,8 +1105,8 @@ app.post("/album/:albumId", async function (req, res) {
         if (num === false) res.redirect("/albumSearch?notFound=true");
         else {
             try {
-                const albumDuplicate = await Album.countDocuments({"userID": req.user._id, "albumID": album});
-                if (albumDuplicate > 0) res.redirect("/album/" + album + "?duplicate=true");
+                const albumDuplicate = await Album.exists({"userID": req.user._id, "albumID": album});
+                if (albumDuplicate) res.redirect("/album/" + album + "?duplicate=true");
                 else {
                     let artistName = "";
                     let albumName = "";
