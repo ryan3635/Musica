@@ -717,7 +717,7 @@ app.post("/forget", forgetPwLimit, async function (req, res) {
 });
 
 
-app.post("/passwordReset", function (req, res) {
+app.post("/passwordReset", async function (req, res) {
     if (!req.isAuthenticated()) {
         if (typeof req.query.userID === "string" && typeof req.query.token === "string" && req.query.userID && req.query.token) {
             const userID = req.query.userID;
@@ -730,39 +730,19 @@ app.post("/passwordReset", function (req, res) {
             else {
                 if (passwordNew1 !== passwordNew2) res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&duplicatePwError=true");
                 else {
-                    User.findOne({"_id": userID, token: hashedToken, awaitingReset: true, tokenExpire: mongoose.trusted({$gt: Date.now()})}, function (err, user) {
-                        if (err) {
-                            console.log(err);
-                            res.redirect("/passwordReset?error=true");
-                        }
-                        else if (!user) res.redirect("/forget?tokenExpired=true");
+                    try {
+                        const user = await User.findOne({"_id": userID, token: hashedToken, awaitingReset: true, tokenExpire: mongoose.trusted({$gt: Date.now()})});
+                        if (!user) res.redirect("/forget?tokenExpired=true");
                         else {
-                            bcrypt.genSalt(10, function (err, salt) {
-                                if (err) {
-                                    console.log(err);
-                                    res.redirect("/passwordReset?error=true");
-                                }
-                                else {
-                                    bcrypt.hash(passwordNew2, salt, function (err, hash) {
-                                        if (err) {
-                                            console.log(err);
-                                            res.redirect("/passwordReset?error=true");
-                                        }
-                                        else {
-                                            User.updateOne({"_id": userID}, {$set: {password: hash}, 
-                                                                $unset: {token: 1, tokenExpire: 1, awaitingReset: 1}}, function (err, result) {
-                                                if (err) {
-                                                    console.log(err);
-                                                    res.redirect("/passwordReset?error=true");
-                                                }
-                                                else res.redirect("/login?pwReset=true");
-                                            });
-                                        }
-                                    });
-                                }
-                            });
+                            const salt = await bcrypt.genSalt(10);
+                            const hash = await bcrypt.hash(passwordNew2, salt);
+                            await User.updateOne({"_id": userID}, {$set: {password: hash}, $unset: {token: 1, tokenExpire: 1, awaitingReset: 1}});
+                            res.redirect("/login?pwReset=true");
                         }
-                    });
+                    } catch (err) {
+                        console.log(err);
+                        res.redirect("/passwordReset?userID=" + userID + "&token=" + token + "&error=true");
+                    }
                 }
             }
         }
