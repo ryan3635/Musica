@@ -852,54 +852,36 @@ app.post("/change/:type", async function (req, res) {
 });
 
 
-app.post("/userProfile/:displayName", function (req, res) {
+app.post("/userProfile/:displayName", async function (req, res) {
     const displayName = req.params.displayName;
     const end = req.body.end;
     const goto = req.body.goto;
     const albumRemove = req.body.remove;
     const reorderedAlbum = req.body.reordered;
-
-    User.findOne({displayname: displayName}, function (err, userId) {
-        if (err) {
-            console.log(err);
-            res.redirect(displayName + "?page=1&error=true");
-        }
-        else if (!userId) res.redirect("/");
+    try {
+        const userId = await User.findOne({displayname: displayName});
+        if (!userId) res.redirect("/");
         else {
             const userID = userId._id;
-
             //Jump to End of List
             if (end === "end") {
-                Album.countDocuments({"userID": userID}, function (err, count) {
-                    if (err) {
-                        console.log(err);
-                        res.redirect(displayName + "?page=1&error=true");
-                    }
-                    else {
-                        const finalPage = (Math.trunc(count/10) + 1);
-                        if ((count % 10) === 0 && count > 10) res.redirect(displayName + "?page=" + (finalPage - 1));
-                        else res.redirect(displayName + "?page=" + finalPage);
-                    }
-                });
+                const count = await Album.countDocuments({"userID": userID});
+                const finalPage = (Math.trunc(count/10) + 1);
+                if ((count % 10) === 0 && count > 10) res.redirect(displayName + "?page=" + (finalPage - 1));
+                else res.redirect(displayName + "?page=" + finalPage);
             }
 
             //Page Select
             else if (goto === "goto") {
                 const page = parseInt(req.body.page) || 1;
                 const gotoPage = parseInt(req.body.gotoPage);
-
-                Album.countDocuments({"userID": userID}, function (err, count) {
-                    if (err) {
-                        console.log(err);
-                        res.redirect(displayName + "?page=1&gotoError=true");
-                    }
-                    else if (!count) res.redirect(displayName + "?page=1&gotoError=true");
-                    else {
-                        const pageLimit = (Math.trunc(count/10) + 1);
-                        if (gotoPage <= 0 || isNaN(gotoPage) || gotoPage > pageLimit) res.redirect(displayName + "?page=" + page + "&goto=true&gotoError=true");
-                        else res.redirect(displayName + "?page=" + gotoPage);
-                    }
-                });
+                const count = await Album.countDocuments({"userID": userID});
+                if (!count) res.redirect(displayName + "?page=1&gotoError=true");
+                else {
+                    const pageLimit = (Math.trunc(count/10) + 1);
+                    if (gotoPage <= 0 || isNaN(gotoPage) || gotoPage > pageLimit) res.redirect(displayName + "?page=" + page + "&goto=true&gotoError=true");
+                    else res.redirect(displayName + "?page=" + gotoPage);
+                }
             }
 
             //Remove Album
@@ -907,43 +889,17 @@ app.post("/userProfile/:displayName", function (req, res) {
                 if (!req.user) res.redirect(displayName + "?page=1");
                 else if (userId.displayname !== req.user.displayname) res.redirect(displayName + "?page=1");
                 else {
-                    Album.findOne({"userID": userID, albumID: albumRemove}, {position: 1}, function (err, albumPos) {
-                        if (err) {
-                            console.log(err);
-                            res.redirect(displayName + "?page=1&error=true");
-                        }
-                        else if (!albumPos) res.redirect(displayName + "?error=true");
-                        else {
-                            Album.updateMany({"userID": userID, "position": mongoose.trusted({$gt: albumPos.position})}, {$inc: {position: -1}}, function (err, result) {
-                                if (err) {
-                                    console.log(err);
-                                    res.redirect(displayName + "?page=1&error=true");
-                                }
-                                else {
-                                    Album.deleteOne({"userID": userID, albumID: albumRemove}, function (err, result) {
-                                        if (err) {
-                                            console.log(err);
-                                            res.redirect(displayName + "?page=1&error=true");
-                                        }
-                                        else {
-                                            let page = (Math.trunc(albumPos.position/10) + 1);
-                                            if (albumPos.position % 10 === 0) page--;
-                                            Album.countDocuments({"userID": userID}, function (err, count) {
-                                                if (err) {
-                                                    console.log(err);
-                                                    res.redirect(displayName + "?page=1&error=true");
-                                                }
-                                                else {
-                                                    if ((count % 10) === 0 && count >= 10) res.redirect(displayName + "?page=" + (page - 1) + "&reorder=true&removed=true");
-                                                    else res.redirect(displayName + "?page=" + page + "&reorder=true&removed=true");
-                                                }
-                                            });
-                                        }
-                                    });
-                                }
-                            });
-                        }
-                    });
+                    const albumPos = await Album.findOne({"userID": userID, albumID: albumRemove}, {position: 1});
+                    if (!albumPos) res.redirect(displayName + "?error=true");
+                    else {
+                        await Album.updateMany({"userID": userID, "position": mongoose.trusted({$gt: albumPos.position})}, {$inc: {position: -1}});
+                        await Album.deleteOne({"userID": userID, albumID: albumRemove});
+                        let page = (Math.trunc(albumPos.position/10) + 1);
+                        if (albumPos.position % 10 === 0) page--;
+                        const count = await Album.countDocuments({"userID": userID});
+                        if ((count % 10) === 0 && count >= 10) res.redirect(displayName + "?page=" + (page - 1) + "&reorder=true&removed=true");
+                        else res.redirect(displayName + "?page=" + page + "&reorder=true&removed=true");
+                    }
                 }
             }
 
@@ -954,75 +910,42 @@ app.post("/userProfile/:displayName", function (req, res) {
                 else {
                     let newPos = req.body.newPos;
                     newPos = parseInt(newPos);
-                    Album.findOne({"userID": userID, albumID: reorderedAlbum}, {albumID: 1, position: 1}, function (err, album) {
-                        if (err) {
-                            console.log(err);
-                            res.redirect(displayName + "?page=1&error=true");
-                        }
-                        else if (!album) res.redirect(displayName + "?page=1&reorderError=true");
-                        else {
-                            const currentPos = album.position;
-                            const currentId = album.albumID;
-                            let page = (Math.trunc(currentPos/10) + 1);
-                            if ((currentPos % 10) === 0) page--;
+                    const album = await Album.findOne({"userID": userID, albumID: reorderedAlbum}, {albumID: 1, position: 1});
+                    if (!album) res.redirect(displayName + "?page=1&reorderError=true");
+                    else {
+                        const currentPos = album.position;
+                        const currentId = album.albumID;
+                        let page = (Math.trunc(currentPos/10) + 1);
+                        if ((currentPos % 10) === 0) page--;
 
-                            Album.countDocuments({"userID": userID}, function (err, count) {
-                                if (err) {
-                                    console.log(err);
-                                    res.redirect(displayName + "?page=1&error=true");
-                                }
-                                else {
-                                    if (newPos <= 0 || isNaN(newPos) || newPos > count) res.redirect(displayName + "?page=" + page + "&reorder=true&reorderError=true");
-                                    else if (newPos === currentPos) res.redirect(displayName + "?page=" + page + "&reorder=true&samePos=true");
-                                    else {
-                                        page = (Math.trunc(newPos/10) + 1);
-                                        if ((newPos % 10) === 0) page--;
-                                        //lower rank of album; other albums increase in rank
-                                        if (newPos > currentPos) {
-                                            Album.updateMany({"userID": userID, "position": mongoose.trusted({$gt: currentPos, $lte: newPos})}, {$inc: {position: -1}}, function (err, result) {
-                                                if (err) {
-                                                    console.log(err);
-                                                    res.redirect(displayName + "?page=1&error=true");
-                                                }
-                                                else {
-                                                    Album.updateOne({"userID": userID, "albumID": currentId}, {"position": newPos}, function (err, result) {
-                                                        if (err) {
-                                                            console.log(err);
-                                                            res.redirect(displayName + "?page=1&error=true");
-                                                        }
-                                                        else res.redirect(displayName + "?page=" + page + "&reordered=true&reorder=true");
-                                                    });
-                                                }
-                                            });
-                                        }
-                                        //increase rank of album; other albums decrease in rank
-                                        else if (newPos < currentPos) {
-                                            Album.updateMany({"userID": userID, "position": mongoose.trusted({$gte: newPos, $lt: currentPos})}, {$inc: {position: +1}}, function (err, result) {
-                                                if (err) {
-                                                    console.log(err);
-                                                    res.redirect(displayName + "?page=1&error=true");
-                                                }
-                                                else {
-                                                    Album.updateOne({"userID": userID, "albumID": currentId}, {"position": newPos}, function (err, result) {
-                                                        if (err) {
-                                                            console.log(err);
-                                                            res.redirect(displayName + "?page=1&error=true");
-                                                        }
-                                                        else res.redirect(displayName + "?page=" + page + "&reordered=true&reorder=true");
-                                                    });
-                                                }
-                                            });
-                                        }
-                                        else res.redirect(displayName + "?page=1&error=true");
-                                    }
-                                }
-                            });
+                        const count = await Album.countDocuments({"userID": userID});
+                        if (newPos <= 0 || isNaN(newPos) || newPos > count) res.redirect(displayName + "?page=" + page + "&reorder=true&reorderError=true");
+                        else if (newPos === currentPos) res.redirect(displayName + "?page=" + page + "&reorder=true&samePos=true");
+                        else {
+                            page = (Math.trunc(newPos/10) + 1);
+                            if ((newPos % 10) === 0) page--;
+                            //lower rank of album; other albums increase in rank
+                            if (newPos > currentPos) {
+                                await Album.updateMany({"userID": userID, "position": mongoose.trusted({$gt: currentPos, $lte: newPos})}, {$inc: {position: -1}});
+                                await Album.updateOne({"userID": userID, "albumID": currentId}, {"position": newPos});
+                                res.redirect(displayName + "?page=" + page + "&reordered=true&reorder=true");
+                            }
+                            //increase rank of album; other albums decrease in rank
+                            else if (newPos < currentPos) {
+                                await Album.updateMany({"userID": userID, "position": mongoose.trusted({$gte: newPos, $lt: currentPos})}, {$inc: {position: +1}});
+                                await Album.updateOne({"userID": userID, "albumID": currentId}, {"position": newPos});
+                                res.redirect(displayName + "?page=" + page + "&reordered=true&reorder=true");
+                            }
+                            else res.redirect(displayName + "?page=1&error=true");
                         }
-                    });
+                    }
                 }
             }
         }
-    });
+    } catch (err) {
+        console.log(err);
+        res.redirect(displayName + "?page=1&error=true");
+    }
 });
 
 
